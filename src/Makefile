@@ -1,0 +1,20 @@
+CJ_DIR = ..
+include ../make.inc
+
+D_CC_SRC = cj.c \
+		   cj_Object.c \
+		   cj_Blas.c
+
+D_CC_OBJ = $(D_CC_SRC:.c=.o)
+
+all: $(LIBCJ) clean
+
+$(LIBCJ): $(D_CC_OBJ) 
+	$(ARCH) $(ARCHFLAGS) $@ $(D_CC_OBJ) $(D_CU_OBJ)
+	$(RANLIB) $@
+
+%.o : %.c
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
+
+clean:
+		rm -f *.cu_o *.o *~ *.linkinfo
