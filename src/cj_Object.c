@@ -109,8 +109,11 @@ void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {
   else cj_Object_error("Dqueue_push_tail", "The object is not a dqueue.");
 }
 
-void cj_Matrix_set (cj_Matrix *matrix, int m, int n) {
+void cj_Matrix_set (cj_Object *object, int m, int n) {
   int i;
+  cj_Matrix *matrix;
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  matrix = object->matrix;
   if (m <= 0 && n <= 0) cj_Object_error("Matrix_new", "m and n should at least be 1.");
   matrix->m = m;
   matrix->n = n;
