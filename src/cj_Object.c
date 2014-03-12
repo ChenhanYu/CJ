@@ -174,6 +174,31 @@ void cj_Matrix_part_2x1 (cj_Object *A, cj_Object *A1,
   a2->base = a->base;
 }
 
+void cj_Matrix_part_1x2 (cj_Object *A, cj_Object *A1, cj_Object *A2,
+		                               int nb,        cj_Side side) {
+  cj_Matrix *a, *a1, *a2;
+
+  if (A->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+    cj_Object_error("matrix_part_1x2", "This is not a matrix.");
+  a = A->matrix;
+  a1 = A1->matrix;
+  a2 = A2->matrix;
+  if (nb > a->n) nb = a->n; 
+  if (side == CJ_RIGHT) nb = a->n - nb;
+
+  a1->m    = a->m;
+  a1->n    = nb;
+  a1->offm = a->offm;
+  a1->offn = a->offn;
+  a1->base = a->base;
+
+  a2->m    = a->m;
+  a2->n    = a->n - nb;
+  a2->offm = a->offm;
+  a2->offn = a->offn + nb;
+  a2->base = a->base;
+}
+
 void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
                                                  cj_Object *A1,
                                   cj_Object *AB, cj_Object *A2,
@@ -190,7 +215,7 @@ void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
   a2 = A2->matrix;
 
   if (side == CJ_TOP) {
-    cj_Matrix_part_2x1 (AT, A0, A1, mb, CJ_BOTTOM);
+    cj_Matrix_part_2x1(AT, A0, A1, mb, CJ_BOTTOM);
 	a2->m = ab->m;
 	a2->n = ab->n;
     a2->offm = ab->offm;
@@ -203,14 +228,45 @@ void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
     a0->offm = at->offm;
     a0->offn = at->offn;
     a0->base = at->base;
-    cj_Matrix_part_2x1 (AB, A1, A2, mb, CJ_TOP);
+    cj_Matrix_part_2x1(AB, A1, A2, mb, CJ_TOP);
   }
 }
 
-void cj_Matrix_cont_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,
-                                               cj_Object *A1,
-                                cj_Object *AB, cj_Object *A2,
-								               cj_Side side) {
+void cj_Matrix_repart_1x2_to_1x3 (cj_Object *AL,                cj_Object *AR,
+                                  cj_Object *A0, cj_Object *A1, cj_Object *A2,
+								                 int nb,        cj_Side side) {
+  cj_Matrix *al, *ar, *a0, *a1, *a2;
+  if (AL->objtype != CJ_MATRIX || AR->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX
+      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+    cj_Object_error("matrix_repart_1x2_1x3", "This is not a matrix.");
+  al = AL->matrix;
+  ar = AR->matrix;
+  a0 = A0->matrix;
+  a1 = A1->matrix;
+  a2 = A2->matrix;
+
+  if (side == CJ_LEFT) {
+    cj_Matrix_part_1x2(AL, A0, A1, nb, CJ_RIGHT);
+	a2->m = ar->m;
+	a2->n = ar->n;
+    a2->offm = ar->offm;
+    a2->offn = ar->offn;
+    a2->base = ar->base;
+  }
+  else {
+	a0->m = al->m;
+	a0->n = al->n;
+    a0->offm = al->offm;
+    a0->offn = al->offn;
+    a0->base = al->base;
+    cj_Matrix_part_1x2(AR, A1, A2, nb, CJ_LEFT);
+  }
+}
+
+void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,
+                                                    cj_Object *A1,
+                                     cj_Object *AB, cj_Object *A2,
+					                                cj_Side side) {
   cj_Matrix *at, *a0, *a1, *ab, *a2;
 
   if (AT->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX
@@ -247,6 +303,47 @@ void cj_Matrix_cont_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,
 	ab->offm = a1->offm;
 	ab->offn = a1->offn;
 	ab->base = a1->base;
+  }
+}
+
+void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR,
+                                     cj_Object *A0, cj_Object *A1, cj_Object *A2,
+						                                           cj_Side side) {
+  cj_Matrix *al, *ar, *a0, *a1, *a2;
+  if (AL->objtype != CJ_MATRIX || AR->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX
+      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+    cj_Object_error("matrix_repart_1x2_1x3", "This is not a matrix.");
+  al = AL->matrix;
+  ar = AR->matrix;
+  a0 = A0->matrix;
+  a1 = A1->matrix;
+  a2 = A2->matrix;
+
+  if (side == CJ_LEFT) {
+    al->m    = a0->m;
+	al->n    = a0->n + a1->n;
+	al->offm = a0->offm;
+	al->offn = a0->offn;
+	al->base = a0->base;
+
+    ar->m    = a2->m;
+	ar->n    = a2->n;
+	ar->offm = a2->offm;
+	ar->offn = a2->offn;
+	ar->base = a2->base;
+  }
+  else {
+    al->m    = a0->m;
+	al->n    = a0->n;
+	al->offm = a0->offm;
+	al->offn = a0->offn;
+	al->base = a0->base;
+
+    ar->m    = a1->m;
+	ar->n    = a1->n + a2->n;
+	ar->offm = a1->offm;
+	ar->offn = a1->offn;
+	ar->base = a1->base;
   }
 }
 
