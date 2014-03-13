@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "cj_Macro.h"
 #include "cj_Object.h"
-
+#include "cj_Graph.h"
 
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);
@@ -11,19 +11,115 @@ void cj_Blas_error (const char *func_name, char* msg_text) {
 }
 
 void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {
+  /* Gemm will read A, B, C and write C. */
+  cj_Matrix *a, *b, *c;
+  cj_Object *A_r, *B_r, *C_r, *A_w, *B_w, *C_w;
+  cj_Object *task, *vertex;
 
+  a = A->matrix; b = B->matrix; c = C->matrix;
+
+  /*
+  fprintf(stderr, "          a->base : %d\n", (int)a->base);
+  fprintf(stderr, "          b->base : %d\n", (int)b->base);
+  fprintf(stderr, "          c->base : %d\n", (int)c->base);
+  fprintf(stderr, "          a->offm : %d, a->offn : %d\n", a->offm, a->offn);
+  fprintf(stderr, "          b->offm : %d, b->offn : %d\n", b->offm, b->offn);
+  fprintf(stderr, "          c->offm : %d, c->offn : %d\n", c->offm, c->offn);
+  */
+
+  A_r = a->base->rset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
+  B_r = b->base->rset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
+  C_r = c->base->rset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+  A_w = a->base->wset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
+  B_w = b->base->wset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
+  C_w = c->base->wset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+
+  task = cj_Object_new(CJ_TASK);
+  snprintf(task->task->name, 64, "Gemm%d_A_%d_%d_B_%d_%d_C_%d_%d", 
+		  task->task->id,
+		  a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
+		  b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
+		  c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
+
+  /* TODO : cj_Task_set() */
+  vertex = cj_Object_new(CJ_VERTEX);
+  cj_Vertex_set(vertex, task);
+  cj_Graph_vertex_add(vertex);
+
+  /*
+  fprintf(stderr, "          A_r->objtype is CJ_DQUEUE = %d\n", A_r->objtype == CJ_DQUEUE);
+  fprintf(stderr, "          B_r->objtype is CJ_DQUEUE = %d\n", B_r->objtype == CJ_DQUEUE);
+  fprintf(stderr, "          C_r->objtype is CJ_DQUEUE = %d\n", C_r->objtype == CJ_DQUEUE);
+  */
+
+  cj_Dqueue_push_tail(A_r, task);
+  if (cj_Dqueue_get_size(A_w) > 0) {
+    cj_Object *now = A_w->dqueue->head;
+	while (now) {
+      if (now->task != task->task) {
+        cj_Object *edge;
+		edge = cj_Object_new(CJ_EDGE);
+		cj_Edge_set(edge, now, task);
+        cj_Graph_edge_add(edge);
+	  }
+      now = now->next;
+	}
+  }
+  cj_Dqueue_push_tail(B_r, task);
+  if (cj_Dqueue_get_size(B_w) > 0) {
+    cj_Object *now = B_w->dqueue->head;
+	while (now) {
+      if (now->task != task->task) {
+        cj_Object *edge;
+		edge = cj_Object_new(CJ_EDGE);
+		cj_Edge_set(edge, now, task);
+        cj_Graph_edge_add(edge);
+	  }
+      now = now->next;
+	}
+  }
+  cj_Dqueue_push_tail(C_r, task);
+  if (cj_Dqueue_get_size(C_w) > 0) {
+    cj_Object *now = C_w->dqueue->head;
+	while (now) {
+      if (now->task != task->task) {
+        cj_Object *edge;
+		edge = cj_Object_new(CJ_EDGE);
+		cj_Edge_set(edge, now, task);
+        cj_Graph_edge_add(edge);
+	  }
+      now = now->next;
+	}
+  }
+  if (cj_Dqueue_get_size(C_r) > 0) {
+    cj_Object *now = C_r->dqueue->head; 
+	while (now) {
+      if (now->task != task->task) {
+        cj_Object *edge;
+		edge = cj_Object_new(CJ_EDGE);
+		cj_Edge_set(edge, now, task);
+        cj_Graph_edge_add(edge);
+	  }
+      now = now->next;
+	}
+  }
+  cj_Dqueue_clear(C_w);
+  cj_Dqueue_push_tail(C_w, task);
+  cj_Dqueue_clear(C_r);
 }
 
 void cj_Gebp(cj_Object *A, cj_Object *B, cj_Object *C) {
-  fprintf(stderr, "        Gebp (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
+  fprintf(stderr, RED "        Gebp (A(%d, %d), B(%d, %d), C(%d, %d)): \n" NONE, 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
+  fprintf(stderr, "        {\n");
   cj_Object *alpha, *beta;
   alpha = cj_Object_new(CJ_CONSTANT);
   beta  = cj_Object_new(CJ_CONSTANT);
   /* TODO : Constant constructor */
   cj_Gemm_task(alpha, A, B, beta, C);
+  fprintf(stderr, "        }\n");
 }
 
 void cj_Gepp_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {

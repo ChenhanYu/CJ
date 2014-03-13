@@ -3,7 +3,8 @@ include ../make.inc
 
 D_CC_SRC = cj.c \
 		   cj_Object.c \
-		   cj_Blas.c
+		   cj_Graph.c \
+		   cj_Blas.c 
 
 D_CC_OBJ = $(D_CC_SRC:.c=.o)
 

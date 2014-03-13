@@ -1,6 +1,6 @@
 #define BLOCK_SIZE 64
 
-typedef enum {CJ_DQUEUE, CJ_TASK, CJ_MATRIX, CJ_CONSTANT} cj_objType;
+typedef enum {CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CONSTANT} cj_objType;
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
 typedef enum {CJ_TOP, CJ_BOTTOM, CJ_LEFT, CJ_RIGHT} cj_Side;
 //typedef enum {CJ_GEMM, CJ_TRSM, CJ_POTRF} cj_tskType;
@@ -20,14 +20,15 @@ struct matrix_s {
   int offm;
   int offn;
   /* double array of dqueue */
-  struct object_s **rset;
+  struct object_s ***rset;
   /* double array of dqueue */
-  struct object_s **wset;
+  struct object_s ***wset;
   struct matrix_s *base;
 };
 
 struct task_s {
-  char *name;
+  char name[64];
+  int id;
   /* Dependency */
   struct object_s *in;
   struct object_s *out;
@@ -41,6 +42,15 @@ struct dqueue_s {
   struct object_s *tail;
 };
 
+struct vertex_s {
+  struct task_s *task;
+};
+
+struct edge_s {
+  struct task_s *in;
+  struct task_s *out;
+};
+
 struct object_s {
   void *key;
   cj_objType objtype;
@@ -48,6 +58,8 @@ struct object_s {
     struct dqueue_s *dqueue;
 	struct matrix_s *matrix;
 	struct task_s   *task;
+	struct vertex_s *vertex;
+	struct edge_s   *edge;
   };
   struct object_s *prev;
   struct object_s *next;
@@ -57,9 +69,12 @@ typedef struct dqueue_s cj_Dqueue;
 typedef struct task_s   cj_Task;
 typedef struct matrix_s cj_Matrix;
 typedef struct object_s cj_Object;
+typedef struct vertex_s cj_Vertex;
+typedef struct edge_s   cj_Edge;
 
 
 cj_Object *cj_Object_new (cj_objType);
+
 void cj_Matrix_set (cj_Object*, int, int);
 void cj_Matrix_part_2x1 (cj_Object*, cj_Object*, cj_Object*, int, cj_Side);
 void cj_Matrix_part_1x2 (cj_Object*, cj_Object*, cj_Object*, int, cj_Side);
@@ -67,3 +82,12 @@ void cj_Matrix_repart_2x1_to_3x1 (cj_Object*, cj_Object*, cj_Object*, cj_Object*
 void cj_Matrix_repart_1x2_to_1x3 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, int, cj_Side);
 void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Side);
 void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Side);
+
+int cj_Dqueue_get_size (cj_Object*);
+void cj_Dqueue_push_head (cj_Object*, cj_Object*);
+void cj_Dqueue_push_tail (cj_Object*, cj_Object*);
+void cj_Dqueue_clear(cj_Object*);
+
+void cj_Vertex_set (cj_Object*, cj_Object*);
+
+void cj_Edge_set (cj_Object*, cj_Object*, cj_Object*);

@@ -2,17 +2,20 @@
 #include <stdlib.h>
 #include "cj_Object.h"
 
+static int taskid = 0;
+
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
 }
 
-cj_Task *cj_Task_new (char *name) {
+cj_Task *cj_Task_new () {
   cj_Task *task;
   task = (cj_Task *) malloc(sizeof(cj_Task));
   if (!task) cj_Object_error("Task_new", "memory allocation failed.");
-  task->name = name;
+  task->id = taskid;
+  taskid ++;
   task->in = (cj_Object *) malloc(sizeof(cj_Object));
   if (!task->in) cj_Object_error("Task_new", "memory allocation failed.");
   task->out = (cj_Object *) malloc(sizeof(cj_Object));
@@ -109,8 +112,16 @@ void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {
   else cj_Object_error("Dqueue_push_tail", "The object is not a dqueue.");
 }
 
+void cj_Dqueue_clear(cj_Object *object) {
+  cj_Object *tmp;
+  if (object->objtype != CJ_DQUEUE) cj_Object_error("Dqueue_flush", "The object is not a dqueue.");
+  while (cj_Dqueue_get_size(object) != 0) {
+    tmp = cj_Dqueue_pop_tail(object);
+  }
+}
+
 void cj_Matrix_set (cj_Object *object, int m, int n) {
-  int i;
+  int i, j;
   cj_Matrix *matrix;
   if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
   matrix = object->matrix;
@@ -121,17 +132,23 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
   matrix->nb = (n - 1)/BLOCK_SIZE + 1;
   matrix->offm = 0;
   matrix->offn = 0;
-  matrix->rset = (cj_Object **) malloc((matrix->mb)*sizeof(cj_Object*));
+  matrix->rset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->rset) cj_Object_error("Matrix_new", "memory allocation failed.");
-  matrix->wset = (cj_Object **) malloc((matrix->mb)*sizeof(cj_Object*));
+  matrix->wset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->wset) cj_Object_error("Matrix_new", "memory allocation failed.");
   for (i = 0; i < matrix->mb; i++) {
-     matrix->rset[i] = (cj_Object *) malloc((matrix->nb)*sizeof(cj_Object));
-     if (!matrix->rset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
-     matrix->wset[i] = (cj_Object *) malloc((matrix->nb)*sizeof(cj_Object));
-     if (!matrix->wset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+    matrix->rset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
+    if (!matrix->rset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+    matrix->wset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
+    if (!matrix->wset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+	for (j = 0; j < matrix->nb; j++) {
+      matrix->rset[i][j] = cj_Object_new(CJ_DQUEUE);
+      if (!matrix->rset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+      matrix->wset[i][j] = cj_Object_new(CJ_DQUEUE);
+      if (!matrix->wset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+    }
   }
-  matrix->base = matrix;
+  matrix->base = object->matrix;
 }
 
 cj_Matrix *cj_Matrix_new () {
@@ -354,6 +371,36 @@ void cj_Matrix_delete (cj_Matrix *matrix) {
 
 }
 
+void cj_Vertex_set (cj_Object *object, cj_Object *target) {
+  cj_Vertex *vertex;
+  if (object->objtype != CJ_VERTEX) cj_Object_error("Vertex_set", "The object is not a vertex.");
+  if (target->objtype != CJ_TASK) cj_Object_error("Vertex_set", "The target is not a task.");
+  object->vertex->task = target->task;
+}
+
+cj_Vertex *cj_Vertex_new () {
+  cj_Vertex *vertex;
+  vertex = (cj_Vertex*) malloc(sizeof(cj_Vertex));
+  return vertex;
+}
+
+void cj_Edge_set (cj_Object *object, cj_Object *in, cj_Object *out) {
+  cj_Edge *edge;
+  if (object->objtype != CJ_EDGE) cj_Object_error("Edge_set", "The object is not a vertex.");
+  if (in->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 1.st target is not a task.");
+  if (out->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 2.nd target is not a task.");
+  object->edge->in = in->task;
+  object->edge->out = out->task;
+}
+
+cj_Edge *cj_Edge_new () {
+  cj_Edge *edge;
+  edge = (cj_Edge*) malloc(sizeof(cj_Edge));
+  return edge;
+}
+
+
+
 cj_Object *cj_Object_new (cj_objType type) {
   cj_Object *object;
   object = (cj_Object*) malloc(sizeof(cj_Object));
@@ -369,7 +416,16 @@ cj_Object *cj_Object_new (cj_objType type) {
   }
   else if (type == CJ_TASK) {
     object->objtype = CJ_TASK;
+    object->task = cj_Task_new();
 	/* Need to call the specific constructor. */
+  }
+  else if (type == CJ_VERTEX) {
+    object->objtype = CJ_VERTEX;
+    object->vertex = cj_Vertex_new();
+  }
+  else if (type == CJ_EDGE) {
+    object->objtype = CJ_EDGE;
+    object->edge = cj_Edge_new();
   }
 
   object->prev = NULL;
