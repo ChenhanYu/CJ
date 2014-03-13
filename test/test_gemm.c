@@ -6,6 +6,7 @@
 
 int main () {
   cj_Object *A, *B, *C, *D;
+  //int ma = 256, na = 256, mb = na, nb = 256, mc = ma, nc = nb;
   int ma = 128, na = 128, mb = na, nb = 128, mc = ma, nc = nb;
   int md = ma, nd = nc;
 
@@ -22,8 +23,8 @@ int main () {
   cj_Matrix_set(D, md, nd);
 
   /* C = A*B */
-  cj_Gemm(A, B, C);
-  cj_Gemm(A, C, D);
+  cj_Gemm_nn(A, B, C);
+  //cj_Gemm_nn(C, B, D);
 
   cj_Term();
 

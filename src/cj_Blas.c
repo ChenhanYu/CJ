@@ -10,7 +10,7 @@ void cj_Blas_error (const char *func_name, char* msg_text) {
   exit(0);
 }
 
-void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {
+void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {
   /* Gemm will read A, B, C and write C. */
   cj_Matrix *a, *b, *c;
   cj_Object *A_r, *B_r, *C_r, *A_w, *B_w, *C_w;
@@ -35,7 +35,7 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
   C_w = c->base->wset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
 
   task = cj_Object_new(CJ_TASK);
-  snprintf(task->task->name, 64, "Gemm%d_A_%d_%d_B_%d_%d_C_%d_%d", 
+  snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
 		  task->task->id,
 		  a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
 		  b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
@@ -52,7 +52,7 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
   fprintf(stderr, "          C_r->objtype is CJ_DQUEUE = %d\n", C_r->objtype == CJ_DQUEUE);
   */
 
-  cj_Dqueue_push_tail(A_r, task);
+  cj_Dqueue_push_tail(A_r, cj_Object_append(CJ_TASK, (void *) task->task));
   if (cj_Dqueue_get_size(A_w) > 0) {
     cj_Object *now = A_w->dqueue->head;
 	while (now) {
@@ -61,11 +61,12 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
-  cj_Dqueue_push_tail(B_r, task);
+  cj_Dqueue_push_tail(B_r, cj_Object_append(CJ_TASK, (void *) task->task));
   if (cj_Dqueue_get_size(B_w) > 0) {
     cj_Object *now = B_w->dqueue->head;
 	while (now) {
@@ -74,11 +75,12 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
-  cj_Dqueue_push_tail(C_r, task);
+  cj_Dqueue_push_tail(C_r, cj_Object_append(CJ_TASK, (void *) task->task));
   if (cj_Dqueue_get_size(C_w) > 0) {
     cj_Object *now = C_w->dqueue->head;
 	while (now) {
@@ -87,6 +89,7 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
@@ -99,17 +102,18 @@ void cj_Gemm_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta,
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+        fprintf(stderr, "          Anti-dependency.\n");
 	  }
       now = now->next;
 	}
   }
   cj_Dqueue_clear(C_w);
-  cj_Dqueue_push_tail(C_w, task);
+  cj_Dqueue_push_tail(C_w, cj_Object_append(CJ_TASK, (void *) task->task));
   cj_Dqueue_clear(C_r);
 }
 
-void cj_Gebp(cj_Object *A, cj_Object *B, cj_Object *C) {
-  fprintf(stderr, RED "        Gebp (A(%d, %d), B(%d, %d), C(%d, %d)): \n" NONE, 
+void cj_Gebp_nn(cj_Object *A, cj_Object *B, cj_Object *C) {
+  fprintf(stderr, RED "        Gebp_nn (A(%d, %d), B(%d, %d), C(%d, %d)): \n" NONE, 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
@@ -118,14 +122,14 @@ void cj_Gebp(cj_Object *A, cj_Object *B, cj_Object *C) {
   alpha = cj_Object_new(CJ_CONSTANT);
   beta  = cj_Object_new(CJ_CONSTANT);
   /* TODO : Constant constructor */
-  cj_Gemm_task(alpha, A, B, beta, C);
+  cj_Gemm_nn_task(alpha, A, B, beta, C);
   fprintf(stderr, "        }\n");
 }
 
-void cj_Gepp_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {
+void cj_Gepp_nn_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Object *AT, *A0, *AB, *A1, *A2, *CT, *C0, *CB, *C1, *C2;
 
-  fprintf(stderr, "      Gepp_blk_var1 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
+  fprintf(stderr, "      Gepp_nn_blk_var1 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
@@ -159,7 +163,7 @@ void cj_Gepp_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {
                                 CB,           C2,      b,  CJ_BOTTOM);
 
 	/* ------------------------------------------------------------------ */
-    cj_Gebp (A1, B, C1);
+    cj_Gebp_nn (A1, B, C1);
 	/* ------------------------------------------------------------------ */
 
     cj_Matrix_cont_with_3x1_to_2x1(AT,           A0,
@@ -175,10 +179,10 @@ void cj_Gepp_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {
   fprintf(stderr, "      }\n");
 }
 
-void cj_Gemm_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
+void cj_Gemm_nn_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Object *AL, *AR, *A0, *A1, *A2, *BT, *B0, *BB, *B1, *B2;
 
-  fprintf(stderr, "    Gemm_blk_var1 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
+  fprintf(stderr, "    Gemm_nn_blk_var1 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
@@ -207,7 +211,7 @@ void cj_Gemm_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
                                 BB,      B2,       b, CJ_BOTTOM);
 
 	/* ------------------------------------------------------------------ */
-    cj_Gepp_blk_var1 (A1, B1, C);
+    cj_Gepp_nn_blk_var1 (A1, B1, C);
 	/* ------------------------------------------------------------------ */
 
 	cj_Matrix_cont_with_1x3_to_1x2(AL, /**/ AR,       A0, A1, /**/ A2,
@@ -220,10 +224,10 @@ void cj_Gemm_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
   fprintf(stderr, "    }\n");
 }
 
-void cj_Gemm_blk_var2 (cj_Object *A, cj_Object *B, cj_Object *C) {
+void cj_Gemm_nn_blk_var3 (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Object *BL, *BR, *B0, *B1, *B2, *CL, *CR, *C0, *C1, *C2;
 
-  fprintf(stderr, "  Gemm_blk_var2 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
+  fprintf(stderr, "  Gemm_nn_blk_var3 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
@@ -249,7 +253,7 @@ void cj_Gemm_blk_var2 (cj_Object *A, cj_Object *B, cj_Object *C) {
 			                    b, CJ_RIGHT);
 
 	/* ------------------------------------------------------------------ */
-    cj_Gemm_blk_var1 (A, B1, C1);
+    cj_Gemm_nn_blk_var1 (A, B1, C1);
 	/* ------------------------------------------------------------------ */
 
 	cj_Matrix_cont_with_1x3_to_1x2(BL, /**/ BR,     B0, /**/ B1, B2, 
@@ -261,10 +265,10 @@ void cj_Gemm_blk_var2 (cj_Object *A, cj_Object *B, cj_Object *C) {
   fprintf(stderr, "  }\n");
 }
 
-void cj_Gemm_blk_var3 (cj_Object *A, cj_Object *B, cj_Object *C) {
+void cj_Gemm_nn_blk_var5 (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Object *AT, *A0, *AB, *A1, *A2, *CT, *C0, *CB, *C1, *C2;
 
-  fprintf(stderr, "Gemm_blk_var3 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
+  fprintf(stderr, "Gemm_nn_blk_var5 (A(%d, %d), B(%d, %d), C(%d, %d)): \n", 
 		  A->matrix->m, A->matrix->n,
 		  B->matrix->m, B->matrix->n,
 		  C->matrix->m, C->matrix->n);
@@ -298,7 +302,7 @@ void cj_Gemm_blk_var3 (cj_Object *A, cj_Object *B, cj_Object *C) {
                                 CB,           C2,      b,  CJ_BOTTOM);
 
 	/* ------------------------------------------------------------------ */
-    cj_Gemm_blk_var2 (A1, B, C1);
+    cj_Gemm_nn_blk_var3 (A1, B, C1);
 	/* ------------------------------------------------------------------ */
 
     cj_Matrix_cont_with_3x1_to_2x1(AT,           A0,
@@ -313,17 +317,35 @@ void cj_Gemm_blk_var3 (cj_Object *A, cj_Object *B, cj_Object *C) {
   fprintf(stderr, "}\n");
 }
 
-void cj_Gemm (cj_Object *A, cj_Object *B, cj_Object *C) {
+void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {
+  
+}
+
+void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Matrix *a, *b, *c;
   if (!A || !B || !C) 
-	  cj_Blas_error("gemm", "matrices haven't been initialized yet.");
+	  cj_Blas_error("gemm_nn", "matrices haven't been initialized yet.");
   if (!A->matrix || !B->matrix || !C->matrix)
-	  cj_Blas_error("gemm", "Object types are not matrix type.");
+	  cj_Blas_error("gemm_nn", "Object types are not matrix type.");
   a = A->matrix;
   b = B->matrix;
   c = C->matrix;
   if ((c->m != a->m) || (c->n != b->n) || (a->n != b->m)) 
-    cj_Blas_error("gemm", "matrices dimension aren't matched.");
+    cj_Blas_error("gemm_nn", "matrices dimension aren't matched.");
 
-  cj_Gemm_blk_var3(A, B, C);
+  cj_Gemm_nn_blk_var5(A, B, C);
+}
+
+void cj_Syrk_ln (cj_Object *A, cj_Object *C) {
+  cj_Matrix *a, *c;
+  if (!A || !C) 
+	  cj_Blas_error("syrk_ln", "matrices haven't been initialized yet.");
+  if (!A->matrix || !C->matrix)
+	  cj_Blas_error("syrk_ln", "Object types are not matrix type.");
+  a = A->matrix;
+  c = C->matrix;
+  if ((a->m != a->n) || (c->m != c->n) || (c->m != a->m)) 
+    cj_Blas_error("syrk_ln", "matrices dimension aren't matched.");
+
+  cj_Syrk_ln_blk_var5(A, C);
 }
