@@ -26,6 +26,8 @@ void cj_Graph_vertex_add (cj_Object *vertex) {
   cj_Dqueue_push_tail(graph->vertex, vertex);
 }
 
+cj_Object *cj_Graph_vertex_get () {return graph->vertex;};
+
 void cj_Graph_edge_add (cj_Object *edge) {
   if (!graph) cj_Graph_error("Graph_edge_add", "Need initialization!");
   if (edge->objtype != CJ_EDGE) cj_Graph_error("Graph_edge_add", "This is not an edge.");

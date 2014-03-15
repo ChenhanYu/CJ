@@ -4,7 +4,8 @@ include ../make.inc
 D_CC_SRC = cj.c \
 		   cj_Object.c \
 		   cj_Graph.c \
-		   cj_Blas.c 
+		   cj_Blas.c \
+		   cj_Device.c
 
 D_CC_OBJ = $(D_CC_SRC:.c=.o)
 

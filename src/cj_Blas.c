@@ -3,6 +3,8 @@
 #include "cj_Macro.h"
 #include "cj_Object.h"
 #include "cj_Graph.h"
+#include "cj_Device.h"
+#include "cj.h"
 
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);
@@ -61,11 +63,13 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+		cj_Task_dependency_add(now, task);
         fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
+
   cj_Dqueue_push_tail(B_r, cj_Object_append(CJ_TASK, (void *) task->task));
   if (cj_Dqueue_get_size(B_w) > 0) {
     cj_Object *now = B_w->dqueue->head;
@@ -75,11 +79,13 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+		cj_Task_dependency_add(now, task);
         fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
+
   cj_Dqueue_push_tail(C_r, cj_Object_append(CJ_TASK, (void *) task->task));
   if (cj_Dqueue_get_size(C_w) > 0) {
     cj_Object *now = C_w->dqueue->head;
@@ -89,11 +95,13 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
+		cj_Task_dependency_add(now, task);
         fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
+
   if (cj_Dqueue_get_size(C_r) > 0) {
     cj_Object *now = C_r->dqueue->head; 
 	while (now) {
@@ -102,7 +110,8 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 		edge = cj_Object_new(CJ_EDGE);
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
-        fprintf(stderr, "          Anti-dependency.\n");
+		cj_Task_dependency_add(now, task);
+        fprintf(stderr, "          %d->%d. Anti-dependency.\n", now->task->id, now->task->id);
 	  }
       now = now->next;
 	}
@@ -332,8 +341,10 @@ void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {
   c = C->matrix;
   if ((c->m != a->m) || (c->n != b->n) || (a->n != b->m)) 
     cj_Blas_error("gemm_nn", "matrices dimension aren't matched.");
-
+  
+  cj_Queue_end();
   cj_Gemm_nn_blk_var5(A, B, C);
+  cj_Queue_begin();
 }
 
 void cj_Syrk_ln (cj_Object *A, cj_Object *C) {

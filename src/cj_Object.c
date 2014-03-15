@@ -1,26 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cj_Object.h"
-
-static int taskid = 0;
+#include "cj_Device.h"
+#include "cj.h"
 
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
-}
-
-cj_Task *cj_Task_new () {
-  cj_Task *task;
-  task = (cj_Task *) malloc(sizeof(cj_Task));
-  if (!task) cj_Object_error("Task_new", "memory allocation failed.");
-  task->id = taskid;
-  taskid ++;
-  task->in = (cj_Object *) malloc(sizeof(cj_Object));
-  if (!task->in) cj_Object_error("Task_new", "memory allocation failed.");
-  task->out = (cj_Object *) malloc(sizeof(cj_Object));
-  if (!task->out) cj_Object_error("Task_new", "memory allocation failed.");
-  return task;
 }
 
 int cj_Dqueue_get_size (cj_Object *object) {
@@ -51,6 +38,7 @@ cj_Object *cj_Dqueue_pop_head (cj_Object *object) {
       dqueue->size --;
     }
 	else if (dqueue->size == 1) {
+      head = dqueue->head;
       dqueue->head = NULL;
       dqueue->tail = NULL;
       dqueue->size --;
@@ -73,6 +61,7 @@ cj_Object *cj_Dqueue_pop_tail (cj_Object *object) {
       dqueue->size --;
     }
 	else if (dqueue->size == 1) {
+      tail = dqueue->tail;
       dqueue->head = NULL;
       dqueue->tail = NULL;
       dqueue->size --;
