@@ -29,24 +29,29 @@ void cj_Device_free(uintptr_t ptr, cj_devType devtype) {
   }
 }
 
+void cj_Device_report(cj_Device *device) {
+  fprintf(stderr, "  Name: %s\n", device->name);
+}
+
 cj_Device *cj_Device_new(cj_devType devtype) {
   int i;
   cj_Device *device = (cj_Device*) malloc(sizeof(cj_Device));
   if (!device) cj_Device_error("Device_new", "memory allocation failed.");
   if (devtype == CJ_DEV_CUDA) {
     cudaError_t error;
-	struct cudaDeviceProp *prop;
-    error = cudaGetDeviceProperties(prop, gpu_counter);
-	device->name = prop->name;
-    fprintf(stderr, "  Device %d: %s\n", gpu_counter, device->name);
-	gpu_counter ++;
-    
-	/* Setup device cache */
-	device->cache.line_size = BLOCK_SIZE*BLOCK_SIZE*sizeof(double);
+	  struct cudaDeviceProp prop;
+    error = cudaGetDeviceProperties(&prop, gpu_counter);
+	  device->name = prop.name;
+	  gpu_counter ++;
+
+	  /* Setup device cache */
+	  device->cache.line_size = BLOCK_SIZE*BLOCK_SIZE*sizeof(double);
     for (i = 0; i < CACHE_LINE; i++) {
       device->cache.status[i] = CJ_CACHE_CLEAN;
       device->cache.last_use[i] = 0;
     }
+
+    cj_Device_report(device);
   }
 
   return device;

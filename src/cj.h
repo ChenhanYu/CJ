@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <pthread.h>
 
+#define MAX_DEV 4
+
 struct worker_s {
   cj_devType devtype;
   int id;
@@ -22,7 +24,7 @@ struct cj_s {
   struct worker_s **worker;
   int ngpu;
   int nmic;
-  cj_Device **device;
+  cj_Device *device[MAX_DEV];
   pthread_attr_t worker_attr;
 };
 

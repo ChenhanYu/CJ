@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "../src/cj_Object.h"
 #include "../src/cj_Blas.h"
 #include "../src/cj_Device.h"
