@@ -39,7 +39,7 @@ cj_Device *cj_Device_new(cj_devType devtype) {
   if (!device) cj_Device_error("Device_new", "memory allocation failed.");
   if (devtype == CJ_DEV_CUDA) {
     cudaError_t error;
-	  struct cudaDeviceProp prop;
+	struct cudaDeviceProp prop;
     error = cudaGetDeviceProperties(&prop, gpu_counter);
 	  device->name = prop.name;
 	  gpu_counter ++;
@@ -49,6 +49,7 @@ cj_Device *cj_Device_new(cj_devType devtype) {
     for (i = 0; i < CACHE_LINE; i++) {
       device->cache.status[i] = CJ_CACHE_CLEAN;
       device->cache.last_use[i] = 0;
+      device->cache.dev_ptr[i] = cj_Device_malloc(device->cache.line_size, CJ_DEV_CUDA);
     }
 
     cj_Device_report(device);
