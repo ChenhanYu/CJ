@@ -6,6 +6,7 @@
 #include "cj_Graph.h"
 #include "cj_Device.h"
 #include "cj_Macro.h"
+#include "cj_Autotune.h"
 #include "cj.h"
 
 /* This is a dqueue. */
@@ -209,7 +210,9 @@ void cj_Init(int nworker) {
   cj_Graph_init();
 
   cj_Schedule_init();
-  
+ 
+  cj_Autotune_init();
+
   cj.ngpu = 1;
   cj.nmic = 0;
 

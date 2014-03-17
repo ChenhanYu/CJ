@@ -30,7 +30,10 @@ void cj_Device_free(uintptr_t ptr, cj_devType devtype) {
 }
 
 void cj_Device_report(cj_Device *device) {
-  fprintf(stderr, "  Name: %s\n", device->name);
+}
+
+void cj_Device_bind() {
+
 }
 
 cj_Device *cj_Device_new(cj_devType devtype) {
@@ -50,9 +53,13 @@ cj_Device *cj_Device_new(cj_devType devtype) {
       device->cache.status[i] = CJ_CACHE_CLEAN;
       device->cache.last_use[i] = 0;
       device->cache.dev_ptr[i] = cj_Device_malloc(device->cache.line_size, CJ_DEV_CUDA);
+      device->cache.hos_ptr[i] = NULL;
     }
 
-    cj_Device_report(device);
+    //cj_Device_report(device);
+    fprintf(stderr, "  Name         : %s (%d.%d)\n", prop.name, prop.major, prop.minor);
+    //fprintf(stderr, "  Device Memory: %d Mbytes\n", (int) ((prop.totalGlobalMem/1024)/1024));
+    fprintf(stderr, "  Device Memory: %d Mbytes\n", (unsigned int) (prop.totalGlobalMem/1024)/1024);
   }
 
   return device;

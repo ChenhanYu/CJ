@@ -16,6 +16,6 @@ LIBCJ          = ../lib/libcj.a
 INC            = -I../include -I$(CUDA_DIR)/include
 
 #LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib64 -lcudart -lcublas
-LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas
+LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas -lblas
 
 LDFLAGS        = $(INC) $(LIB)
