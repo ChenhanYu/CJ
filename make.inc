@@ -12,9 +12,7 @@ CUDA_DIR       = /usr/local/cuda
 
 LIBCJ          = ../lib/libcj.a 
 
-INC            = -I../include 
-#                 -I$(CUDA_DIR)/include
+INC            = -I../include -I$(CUDA_DIR)/include
 
-LIB            = $(LIBCJ) \
-#                 -L$(CUDA_DIR)/lib -lcudart -lcublas
+LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas
 LDFLAGS        = $(INC) $(LIB)

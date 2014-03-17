@@ -208,6 +208,12 @@ void cj_Init(int nworker) {
   cj_Graph_init();
 
   cj_Schedule_init();
+  
+  cj.ngpu = 1;
+  cj.nmic = 0;
+
+  for (i = 0; i < cj.ngpu; i++) cj.device[i] = cj_Device_new(CJ_DEV_CUDA); 
+  for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) cj.device[i] = cj_Device_new(CJ_DEV_MIC);
 
   if (nworker <= 0) cj_error("Init", "Worker number should at least be 1.");
   cj.nworker = nworker;

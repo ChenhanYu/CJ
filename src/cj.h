@@ -20,6 +20,9 @@ struct cj_s {
   int nworker;
   struct schedule_s schedule;
   struct worker_s **worker;
+  int ngpu;
+  int nmic;
+  cj_Device **device;
   pthread_attr_t worker_attr;
 };
 
