@@ -7,7 +7,7 @@ typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 
 struct cache_s {
   cj_cacheStatus status[CACHE_LINE];
-  uintptr_t dev_ptr[CACHE_LINE];
+  char *dev_ptr[CACHE_LINE];
   char *hos_ptr[CACHE_LINE];
   int last_use[CACHE_LINE];
   size_t line_size;

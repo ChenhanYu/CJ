@@ -1,4 +1,4 @@
-CC             = gcc
+CC             = icc
 NVCC           = nvcc
 
 ARCH           = ar
@@ -8,14 +8,14 @@ RANLIB         = ranlib
 CFLAGS         = -openmp -O2
 NVCCFLAGS      = -O2 -arch sm_35
 
-#CUDA_DIR       = /opt/NVIDIA/cuda
-CUDA_DIR       = /Developer/NVIDIA/CUDA-5.5
+CUDA_DIR       = /opt/NVIDIA/cuda
+#CUDA_DIR       = /Developer/NVIDIA/CUDA-5.5
 
 LIBCJ          = ../lib/libcj.a 
 
 INC            = -I../include -I$(CUDA_DIR)/include
 
-#LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib64 -lcudart -lcublas
-LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas -lblas
+LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib64 -lcudart -lcublas -lpthread -lm -mkl=sequential 
+#LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas -lblas
 
 LDFLAGS        = $(INC) $(LIB)

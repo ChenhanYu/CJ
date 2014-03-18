@@ -215,7 +215,6 @@ void cj_Init(int nworker) {
 
   cj.ngpu = 1;
   cj.nmic = 0;
-
   for (i = 0; i < cj.ngpu; i++) cj.device[i] = cj_Device_new(CJ_DEV_CUDA); 
   for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) cj.device[i] = cj_Device_new(CJ_DEV_MIC);
 

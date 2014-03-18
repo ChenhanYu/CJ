@@ -87,28 +87,47 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 	}
   }
 
+  fprintf(stderr, "size = %d\n", cj_Dqueue_get_size(C_r));
+
   cj_Dqueue_push_tail(C_r, cj_Object_append(CJ_TASK, (void *) task->task));
+  fprintf(stderr, "head = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
+
   if (cj_Dqueue_get_size(C_w) > 0) {
     cj_Object *now = C_w->dqueue->head;
+    fprintf(stderr, "head1 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
 	while (now) {
       if (now->task != task->task) {
+  fprintf(stderr, "head2 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
         cj_Object *edge;
 		edge = cj_Object_new(CJ_EDGE);
+  fprintf(stderr, "head3 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
 		cj_Edge_set(edge, now, task);
+  fprintf(stderr, "head4 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
         cj_Graph_edge_add(edge);
+  fprintf(stderr, "head5 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
 		cj_Task_dependency_add(now, task);
+  fprintf(stderr, "head6 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
         fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
 	  }
       now = now->next;
 	}
   }
 
+    fprintf(stderr, "head1 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
   if (cj_Dqueue_get_size(C_r) > 0) {
     cj_Object *now = C_r->dqueue->head; 
+    fprintf(stderr, "head2 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
 	while (now) {
-      if (now->task != task->task) {
+    fprintf(stderr, "head3 = %d, id = %d\n", C_r->dqueue->head->objtype, C_r->dqueue->head->task->id);
+
+    fprintf(stderr, "id1 = %d, id2 = %d\n", now->task->id, task->task->id);
+    fprintf(stderr, "now->objtype = %d\n", now->objtype);
+    //fprintf(stderr, "task->objtype = %d\n", task->objtype);
+      if (now->task->id != task->task->id) {
         cj_Object *edge;
 		edge = cj_Object_new(CJ_EDGE);
+    fprintf(stderr, "Edge_set inside\n");
+
 		cj_Edge_set(edge, now, task);
         cj_Graph_edge_add(edge);
 		cj_Task_dependency_add(now, task);
