@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "cj_Macro.h"
+#include "cj_Device.h"
 #include "cj_Object.h"
 #include "cj_Graph.h"
-#include "cj_Device.h"
 #include "cj.h"
 
 void cj_Blas_error (const char *func_name, char* msg_text) {

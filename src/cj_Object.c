@@ -1,14 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "cj_Object.h"
 #include "cj_Device.h"
+#include "cj_Object.h"
 #include "cj.h"
 
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
+}
+
+void cj_Distribution_set (cj_Object *object, int device_id, int cache_id) {
+  cj_Distribution *distribution;
+  if (object->objtype != CJ_DISTRIBUTION) cj_Object_error("Distribution_set", "The object is not a distribution.");
+  distribution = object->distribution;
+  distribution->device_id = device_id;
+  distribution->cache_id = cache_id; 
+}
+
+cj_Distribution *cj_Distribution_new () {
+  cj_Distribution *distribution;
+  distribution = (cj_Distribution *) malloc(sizeof(cj_Distribution));
+  if (!distribution) cj_Object_error("Distribution_new", "memory allocation failed.");
+  /* -1 represent that this is distributed on CPU. */
+  distribution->device_id = -1;
+  distribution->cache_id = -1;
+  return distribution;
 }
 
 int cj_Dqueue_get_size (cj_Object *object) {
@@ -157,16 +175,26 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
   if (!matrix->rset) cj_Object_error("Matrix_new", "memory allocation failed.");
   matrix->wset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->wset) cj_Object_error("Matrix_new", "memory allocation failed.");
+  matrix->dist = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
+  if (!matrix->dist) cj_Object_error("Matrix_new", "memory allocation failed.");
   for (i = 0; i < matrix->mb; i++) {
     matrix->rset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
     if (!matrix->rset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
     matrix->wset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
     if (!matrix->wset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+    matrix->dist[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
+    if (!matrix->dist[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
     for (j = 0; j < matrix->nb; j++) {
       matrix->rset[i][j] = cj_Object_new(CJ_DQUEUE);
       if (!matrix->rset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
       matrix->wset[i][j] = cj_Object_new(CJ_DQUEUE);
       if (!matrix->wset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+      matrix->dist[i][j] = cj_Object_new(CJ_DQUEUE);
+      if (!matrix->dist[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+      /* Setup the initial distribution. (only on CPU) */
+      cj_Object *distribution = cj_Object_new(CJ_DISTRIBUTION);
+      cj_Distribution_set(distribution, -1, -1);
+      cj_Dqueue_push_tail(matrix->dist[i][j], distribution);
     }
   }
   matrix->base = object->matrix;
@@ -184,6 +212,7 @@ cj_Matrix *cj_Matrix_new () {
   matrix->offn = 0;
   matrix->rset = NULL;
   matrix->wset = NULL;
+  matrix->dist = NULL;
   matrix->base = NULL;
   return matrix; 
 }
@@ -659,24 +688,28 @@ cj_Object *cj_Object_append (cj_objType type, void *ptr) {
   if (!object) cj_Object_error("new", "memory allocation failed.");
   if (type == CJ_MATRIX) {
     object->objtype = CJ_MATRIX;
-    object->matrix = (cj_Matrix*) ptr;
+    object->matrix = (cj_Matrix *) ptr;
   }
   else if (type == CJ_DQUEUE) {
     object->objtype = CJ_DQUEUE;
-    object->dqueue = (cj_Dqueue*) ptr;
+    object->dqueue = (cj_Dqueue *) ptr;
   }
   else if (type == CJ_TASK) {
     object->objtype = CJ_TASK;
-    object->task = (cj_Task*) ptr;
+    object->task = (cj_Task *) ptr;
     /* Need to call the specific constructor. */
   }
   else if (type == CJ_VERTEX) {
     object->objtype = CJ_VERTEX;
-    object->vertex = (cj_Vertex*) ptr;
+    object->vertex = (cj_Vertex *) ptr;
   }
   else if (type == CJ_EDGE) {
     object->objtype = CJ_EDGE;
-    object->edge = (cj_Edge*) ptr;
+    object->edge = (cj_Edge *) ptr;
+  }
+  else if (type == CJ_DISTRIBUTION) {
+    object->objtype = CJ_DISTRIBUTION;
+    object->distribution = (cj_Distribution *) ptr;
   }
 
   object->prev = NULL;
@@ -710,6 +743,10 @@ cj_Object *cj_Object_new (cj_objType type) {
   else if (type == CJ_EDGE) {
     object->objtype = CJ_EDGE;
     object->edge = cj_Edge_new();
+  }
+  else if (type == CJ_DISTRIBUTION) {
+    object->objtype = CJ_DISTRIBUTION;
+    object->distribution = cj_Distribution_new();
   }
 
   object->prev = NULL;

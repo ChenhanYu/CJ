@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "cj_Device.h"
 #include "cj_Object.h"
 #include "cj_Graph.h"
-#include "cj_Device.h"
 #include "cj_Macro.h"
 #include "cj_Autotune.h"
 #include "cj.h"

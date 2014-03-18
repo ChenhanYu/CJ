@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <cuda_runtime_api.h>
-#include "cj_Object.h"
 #include "cj_Device.h"
+#include "cj_Object.h"
 
 static int gpu_counter = 0;
 static int mic_counter = 0;
@@ -38,8 +38,12 @@ void cj_Device_bind() {
 
 cj_Device *cj_Device_new(cj_devType devtype) {
   int i;
+
   cj_Device *device = (cj_Device*) malloc(sizeof(cj_Device));
   if (!device) cj_Device_error("Device_new", "memory allocation failed.");
+
+  device->devtype = devtype;
+
   if (devtype == CJ_DEV_CUDA) {
     cudaError_t error;
 	  struct cudaDeviceProp prop;

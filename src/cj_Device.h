@@ -14,6 +14,7 @@ struct cache_s {
 };
 
 struct device_s {
+  cj_devType devtype;
   char *name;
   struct cache_s cache;
   int bindid;

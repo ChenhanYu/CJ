@@ -2,7 +2,7 @@
 
 #define BLOCK_SIZE 64
 
-typedef enum {CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CONSTANT} cj_objType;
+typedef enum {CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CONSTANT} cj_objType;
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
 typedef enum {CJ_TOP, CJ_BOTTOM, CJ_LEFT, CJ_RIGHT} cj_Side;
 typedef enum {CJ_TL, CJ_TR, CJ_BL, CJ_BR} cj_Quadrant;
@@ -12,6 +12,11 @@ typedef enum {TRUE, FALSE} cj_Bool;
 typedef enum {WORKER_SLEEPING, WORKER_RUNNING} cj_workerStatus;
 
 //typedef enum {CJ_GEMM, CJ_TRSM, CJ_POTRF} cj_tskType;
+
+struct distribution_s {
+  int device_id;
+  int cache_id;
+};
 
 struct lock_s {
   pthread_mutex_t lock;
@@ -25,6 +30,7 @@ struct constant_s {
 };
 
 struct matrix_s {
+  cj_eleType eletype;
   int m;
   int n;
   int mb;
@@ -35,6 +41,8 @@ struct matrix_s {
   struct object_s ***rset;
   /* double array of dqueue */
   struct object_s ***wset;
+  /* distribution */
+  struct object_s ***dist;
   struct matrix_s *base;
 };
 
@@ -74,15 +82,17 @@ struct object_s {
   cj_objType objtype;
   union {
     struct dqueue_s *dqueue;
-	struct matrix_s *matrix;
-	struct task_s   *task;
-	struct vertex_s *vertex;
-	struct edge_s   *edge;
+    struct matrix_s *matrix;
+    struct task_s   *task;
+    struct vertex_s *vertex;
+    struct edge_s   *edge;
+    struct distribution_s *distribution;
   };
   struct object_s *prev;
   struct object_s *next;
 };
 
+typedef struct distribution_s cj_Distribution;
 typedef struct dqueue_s cj_Dqueue;
 typedef struct task_s   cj_Task;
 typedef struct matrix_s cj_Matrix;
