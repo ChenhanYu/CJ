@@ -1,3 +1,4 @@
+/*
 typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
 typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 
@@ -23,5 +24,7 @@ struct device_s {
 
 typedef struct cache_s cj_Cache;
 typedef struct device_s cj_Device;
+*/
+
 
 cj_Device *cj_Device_new(cj_devType);

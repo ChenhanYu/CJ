@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <cuda_runtime_api.h>
+
+/*
 #include "cj_Device.h"
 #include "cj_Object.h"
+*/
+#include <CJ.h>
 
 static int gpu_counter = 0;
 static int mic_counter = 0;

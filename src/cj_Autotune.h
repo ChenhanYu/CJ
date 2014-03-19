@@ -1,3 +1,4 @@
+/*
 #define AUTOTUNE_GRID 4
 
 struct autotune_s {
@@ -7,5 +8,5 @@ struct autotune_s {
 };
 
 typedef struct autotune_s cj_Autotune;
-
+*/
 void cj_Autotune_init ();

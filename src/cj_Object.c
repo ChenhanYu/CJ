@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+/*
 #include "cj_Device.h"
 #include "cj_Object.h"
 #include "cj.h"
+*/
+#include <CJ.h>
+#include "cj.h"
+#include "cj_Graph.h"
+#include "cj_Object.h"
 
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
@@ -653,6 +659,7 @@ void cj_Matrix_delete (cj_Matrix *matrix) {
 
 }
 
+/*
 void cj_Vertex_set (cj_Object *object, cj_Object *target) {
   cj_Vertex *vertex;
   if (object->objtype != CJ_VERTEX) cj_Object_error("Vertex_set", "The object is not a vertex.");
@@ -667,7 +674,6 @@ cj_Vertex *cj_Vertex_new () {
 }
 
 void cj_Edge_set (cj_Object *object, cj_Object *in, cj_Object *out) {
-  fprintf(stderr, "  Edge_set();\n");
   cj_Edge *edge;
   if (object->objtype != CJ_EDGE) cj_Object_error("Edge_set", "The object is not a vertex.");
   if (in->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 1.st target is not a task.");
@@ -681,6 +687,8 @@ cj_Edge *cj_Edge_new () {
   edge = (cj_Edge*) malloc(sizeof(cj_Edge));
   return edge;
 }
+*/
+
 
 cj_Object *cj_Object_append (cj_objType type, void *ptr) {
   cj_Object *object;

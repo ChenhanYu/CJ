@@ -2,14 +2,21 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+/*
 #include "cj_Device.h"
 #include "cj_Object.h"
 #include "cj_Graph.h"
 #include "cj_Macro.h"
 #include "cj_Autotune.h"
 #include "cj.h"
+*/
+#include <CJ.h>
+#include "cj_Macro.h"
+#include "cj_Device.h"
+#include "cj_Graph.h"
+#include "cj_Object.h"
+#include "cj_Blas.h"
 
-/* This is a dqueue. */
 
 static cj_t cj;
 static int taskid = 0;
@@ -59,6 +66,10 @@ cj_Task *cj_Task_new () {
   return task;
 }
 
+void cj_Task_set (cj_Task *task, void (*function)(void*)) {
+  task->function = function;
+}
+
 void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
   cj_Task *task_out, *task_in;
   if (out->objtype != CJ_TASK || in->objtype != CJ_TASK) 
@@ -94,11 +105,11 @@ void cj_Task_dependencies_update (cj_Object *target) {
 
   while (now) {
     cj_Task *child = now->task;
-	cj_Lock_acquire(&child->tsk_lock);
-	child->num_dependencies_remaining --;
-	if (child->num_dependencies_remaining < 0) cj_error("Task_dependencies_update", "Remaining dependencies can't be negative.");
-	if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
-	cj_Lock_release(&child->tsk_lock);
+    cj_Lock_acquire(&child->tsk_lock);
+    child->num_dependencies_remaining --;
+    if (child->num_dependencies_remaining < 0) cj_error("Task_dependencies_update", "Remaining dependencies can't be negative.");
+    if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
+    cj_Lock_release(&child->tsk_lock);
     now = now->next;
   }
 }
@@ -108,12 +119,12 @@ cj_Object *cj_Worker_wait_dqueue () {
   cj_Object *task;
   task = cj_Dqueue_pop_head(schedule->ready_queue);
   /*
-  if (task) fprintf(stderr, YELLOW "  Worker_wait_dqueue (%d, %s): \n" NONE, task->task->id, task->task->name);
-  else {
-    fprintf(stderr, YELLOW "  Worker_wait_dqueue : ready_queue is empty.\n" NONE);
-	sleep(1);
-  }
-  */
+     if (task) fprintf(stderr, YELLOW "  Worker_wait_dqueue (%d, %s): \n" NONE, task->task->id, task->task->name);
+     else {
+     fprintf(stderr, YELLOW "  Worker_wait_dqueue : ready_queue is empty.\n" NONE);
+     sleep(1);
+     }
+     */
   return task;
 }
 
@@ -133,6 +144,15 @@ cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
   return worker;
 }
 
+float cj_Worker_estimate_cost (cj_Task *task) {
+  float cost;
+  if (task->function == &cj_Gemm_nn_task_function) {
+    
+  }
+
+  return cost;
+}
+
 int cj_Worker_execute (cj_Task *task) {
   task->status = RUNNING;
   sleep(1);
@@ -145,6 +165,7 @@ void *cj_Worker_entry_point (void *arg) {
   cj_Schedule *schedule = &cj.schedule;
   cj_Worker *me;
   int id, condition, committed;
+  float cost;
 
   me = (cj_Worker *) arg;
   id = me->id;
@@ -152,15 +173,16 @@ void *cj_Worker_entry_point (void *arg) {
 
   condition = 1;
   while (condition) {
-	cj_Object *task;
-	/* Access ready_queue, a critical section. */
+    cj_Object *task;
+    /* Access ready_queue, a critical section. */
     cj_Lock_acquire(&schedule->run_lock);
-	task = cj_Worker_wait_dqueue();
+    task = cj_Worker_wait_dqueue();
     cj_Lock_release(&schedule->run_lock);
 
-	if (task) {
+    if (task) {
+      cost = cj_Worker_estimate_cost(task->task);
       committed = cj_Worker_execute(task->task);
-	  if (committed) cj_Task_dependencies_update(task);
+      if (committed) cj_Task_dependencies_update(task);
     }
   }
 
@@ -177,13 +199,13 @@ void cj_Queue_begin() {
   now = vertex->dqueue->head;
 
   while (now) {
-	cj_Task *now_task = now->vertex->task;
+    cj_Task *now_task = now->vertex->task;
     if (now_task->num_dependencies_remaining == 0 && now_task->status == NOTREADY) {
       fprintf(stderr, GREEN "  Sink Point (%d): \n" NONE, now_task->id);
-	  cj_Task_enqueue(cj_Object_append(CJ_TASK, now_task));
+      cj_Task_enqueue(cj_Object_append(CJ_TASK, now_task));
       fprintf(stderr, GREEN "  ready_queue.size = %d: \n" NONE, schedule->ready_queue->dqueue->size);
-	}
-	now = now->next;
+    }
+    now = now->next;
   }
 }
 
@@ -210,7 +232,7 @@ void cj_Init(int nworker) {
   cj_Graph_init();
 
   cj_Schedule_init();
- 
+
   cj_Autotune_init();
 
   cj.ngpu = 1;
@@ -234,8 +256,8 @@ void cj_Init(int nworker) {
 
   for (i = 1; i < cj.nworker; i++) {
     ret = pthread_create(&cj.worker[i]->threadid, &cj.worker_attr,
-                             worker_entry_point, (void *) cj.worker[i]);
-	if (ret) cj_error("Init", "Could not create threads properly");
+        worker_entry_point, (void *) cj.worker[i]);
+    if (ret) cj_error("Init", "Could not create threads properly");
   }
 
   fprintf(stderr, "}\n"); 
@@ -251,7 +273,7 @@ void cj_Term() {
 
   for (i = 1; i < cj.nworker; i++) {
     ret = pthread_join(cj.worker[i]->threadid, NULL);
-	if (ret) cj_error("Term", "Could not join threads properly");
+    if (ret) cj_error("Term", "Could not join threads properly");
   }
 
   fprintf(stderr, "}\n"); 

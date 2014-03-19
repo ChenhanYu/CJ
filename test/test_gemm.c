@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#include <CJ.h>
 #include "../src/cj_Object.h"
 #include "../src/cj_Blas.h"
-#include "../src/cj_Device.h"
-#include "../src/cj_Autotune.h"
 #include "../src/cj.h"
 
 int main () {

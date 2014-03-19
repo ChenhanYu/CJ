@@ -1,3 +1,4 @@
+/*
 #include <stdarg.h>
 #include <pthread.h>
 
@@ -31,6 +32,8 @@ struct cj_s {
 typedef struct worker_s cj_Worker;
 typedef struct schedule_s cj_Schedule;
 typedef struct cj_s cj_t;
+*/
+
 
 void cj_Init(int);
 void cj_Term();

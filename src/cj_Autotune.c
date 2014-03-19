@@ -3,9 +3,12 @@
 #include <stdint.h>
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+/*
 #include "cj_Device.h"
 #include "cj_Object.h"
 #include "cj_Autotune.h"
+*/
+#include <CJ.h>
 
 static cj_Autotune *autotune;
 
