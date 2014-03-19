@@ -52,7 +52,7 @@ cj_Dqueue *cj_Dqueue_new () {
 
 cj_Object *cj_Dqueue_pop_head (cj_Object *object) {
   cj_Dqueue *dqueue;
-  cj_Object *head;
+  cj_Object *head = NULL;
 
   if (object->objtype == CJ_DQUEUE) {
     dqueue = object->dqueue;
@@ -79,7 +79,7 @@ cj_Object *cj_Dqueue_pop_head (cj_Object *object) {
 
 cj_Object *cj_Dqueue_pop_tail (cj_Object *object) {
   cj_Dqueue *dqueue;
-  cj_Object *tail;
+  cj_Object *tail = NULL;
 
   if (object->objtype == CJ_DQUEUE) {
     dqueue = object->dqueue;
@@ -139,6 +139,8 @@ void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {
     target->prev = NULL;
     target->next = NULL;
   }
+  else cj_Object_error("Dqueue_push_tail", "Target is empty.");
+
   if (object->objtype == CJ_DQUEUE) {
     dqueue = object->dqueue;
     if (dqueue->size == 0) {

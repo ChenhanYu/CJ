@@ -27,4 +27,4 @@ typedef struct device_s cj_Device;
 */
 
 
-cj_Device *cj_Device_new(cj_devType);
+cj_Device *cj_Device_new(cj_devType, int);

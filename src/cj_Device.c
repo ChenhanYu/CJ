@@ -36,17 +36,20 @@ void cj_Device_free(uintptr_t ptr, cj_devType devtype) {
 void cj_Device_report(cj_Device *device) {
 }
 
-void cj_Device_bind() {
-
+void cj_Device_bind(cj_Worker *worker, cj_Device *device) {
+  worker->devtype = device->devtype;
+  worker->device_id = device->id;
+  device->bindid = worker->id;
 }
 
-cj_Device *cj_Device_new(cj_devType devtype) {
+cj_Device *cj_Device_new(cj_devType devtype, int device_id) {
   int i;
 
   cj_Device *device = (cj_Device*) malloc(sizeof(cj_Device));
   if (!device) cj_Device_error("Device_new", "memory allocation failed.");
 
   device->devtype = devtype;
+  device->id = device_id;
 
   if (devtype == CJ_DEV_CUDA) {
     cudaError_t error;

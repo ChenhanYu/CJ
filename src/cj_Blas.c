@@ -49,6 +49,10 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 
   task = cj_Object_new(CJ_TASK);
   cj_Task_set(task->task, &cj_Gemm_nn_task_function);
+  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, a));
+  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, b));
+  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, c));
+
   snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
       task->task->id,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,

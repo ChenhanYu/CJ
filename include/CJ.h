@@ -4,6 +4,7 @@
 #define AUTOTUNE_GRID 4
 #define BLOCK_SIZE 64
 #define CACHE_LINE 32
+#define MAX_WORKER 8
 #define MAX_DEV 4
 #define MAX_GPU 4
 #define MAX_MIC 4
@@ -58,6 +59,7 @@ struct task_s {
   char name[64];
   int id;
   struct lock_s tsk_lock;
+  float cost;
   cj_taskPriority priority;
   /* Function ptr */
   void (*function) (void*);
@@ -67,6 +69,7 @@ struct task_s {
   struct object_s *in;
   struct object_s *out;
   /* Argument list */
+  struct object_s *arg;
   /* Destination */
 };
 
@@ -110,13 +113,16 @@ struct autotune_s {
 struct worker_s {
   cj_devType devtype;
   int id;
+  int device_id;
   pthread_t threadid;
   struct cj_s *cj_ptr;
 };
 
 struct schedule_s {
-  struct object_s *ready_queue;
-  struct lock_s run_lock;
+  struct object_s *ready_queue[MAX_WORKER];
+  float time_remaining[MAX_WORKER];
+  struct lock_s run_lock[MAX_WORKER];
+  struct lock_s war_lock;
   struct lock_s pci_lock;
   struct lock_s gpu_lock;
   struct lock_s mic_lock;
@@ -142,6 +148,7 @@ struct cache_s {
 
 struct device_s {
   cj_devType devtype;
+  int id;
   char *name;
   struct cache_s cache;
   int bindid;
