@@ -54,6 +54,7 @@ cj_Device *cj_Device_new(cj_devType devtype, int device_id) {
   if (devtype == CJ_DEV_CUDA) {
     cudaError_t error;
 	  struct cudaDeviceProp prop;
+    cudaSetDevice(device_id);
     error = cudaGetDeviceProperties(&prop, gpu_counter);
 	  device->name = prop.name;
 	  gpu_counter ++;

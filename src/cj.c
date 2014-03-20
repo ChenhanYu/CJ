@@ -53,8 +53,11 @@ cj_Task *cj_Task_new () {
   cj_Task *task;
   task = (cj_Task *) malloc(sizeof(cj_Task));
   if (!task) cj_error("Task_new", "memory allocation failed.");
+
+  /* taskid is a monoton increasing global variable. */
   task->id = taskid;
   taskid ++;
+
   task->status = ALLOCATED_ONLY;
   task->function = NULL;
   task->num_dependencies_remaining = 0;
@@ -80,22 +83,28 @@ void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
   task_out = out->task;
   task_in  = in->task;
 
-  cj_Lock_acquire(&task_in->tsk_lock);
-  cj_Dqueue_push_tail(task_out->out, cj_Object_append(CJ_TASK, (void *) task_in));
-  cj_Lock_release(&task_in->tsk_lock);
+  /* Critical section : access shared memory */
   cj_Lock_acquire(&task_out->tsk_lock);
-  cj_Dqueue_push_tail(task_in->in, cj_Object_append(CJ_TASK, (void *) task_out));
+  {
+    cj_Dqueue_push_tail(task_out->out, cj_Object_append(CJ_TASK, (void *) task_in));
+  }
   cj_Lock_release(&task_out->tsk_lock);
 
-  /* Increase the task's remaining denpendencies. */
-  task_in->num_dependencies_remaining ++;
+  /* Critical section : access shared memory */
+  cj_Lock_acquire(&task_in->tsk_lock);
+  {
+    cj_Dqueue_push_tail(task_in->in, cj_Object_append(CJ_TASK, (void *) task_out));
+    if (task_out->status != DONE) task_in->num_dependencies_remaining ++;
+  }
+  cj_Lock_release(&task_in->tsk_lock);
 }
 
 void cj_Task_enqueue(cj_Object *target) {
   int i, dest;
   float cost, min_time = -1.0;
-  if (target->objtype != CJ_TASK) cj_error("Task_enqueue", "The object is not a task.");
   cj_Schedule *schedule = &cj.schedule;
+
+  if (target->objtype != CJ_TASK) cj_error("Task_enqueue", "The object is not a task.");
 
   dest = 1;
 
@@ -110,12 +119,14 @@ void cj_Task_enqueue(cj_Object *target) {
     fprintf(stderr, "  worker #%d, min_time = %f\n", i, min_time);
   }
 
-  /* Push the task to worker[dest]'s ready_queue. */
+  /* Critical section : push the task to worker[dest]'s ready_queue. */
   cj_Lock_acquire(&schedule->run_lock[dest]);
-  target->task->status = QUEUED;
-  schedule->time_remaining[dest] += target->task->cost;
-  cj_Dqueue_push_tail(schedule->ready_queue[dest], target);
-  fprintf(stderr, "  Enqueue task<%d> to worker[%d]\n", target->task->id, dest);
+  {
+    target->task->status = QUEUED;
+    schedule->time_remaining[dest] += target->task->cost;
+    cj_Dqueue_push_tail(schedule->ready_queue[dest], target);
+    fprintf(stderr, "  Enqueue task<%d> to worker[%d]\n", target->task->id, dest);
+  }
   cj_Lock_release(&schedule->run_lock[dest]);
 }
 
@@ -127,15 +138,23 @@ void cj_Task_dependencies_update (cj_Object *target) {
 
   while (now) {
     cj_Task *child = now->task;
+
+    /* Critical section : */
+    /* TODO : Check if this lock will lead to dead lock. */
     cj_Lock_acquire(&child->tsk_lock);
-    child->num_dependencies_remaining --;
-    if (child->num_dependencies_remaining < 0) cj_error("Task_dependencies_update", "Remaining dependencies can't be negative.");
-    if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) {
-      cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
+    {
+      child->num_dependencies_remaining --;
+      if (child->num_dependencies_remaining < 0) 
+        cj_error("Task_dependencies_update", "Remaining dependencies can't be negative.");
+      if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) {
+        cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
+      }
     }
     cj_Lock_release(&child->tsk_lock);
+
     now = now->next;
   }
+  task->status = DONE;
 }
 
 cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
@@ -232,7 +251,7 @@ int cj_Worker_execute (cj_Task *task) {
   //sleep(1);
   usleep((unsigned int) task->cost);
   fprintf(stderr, YELLOW "  Worker_execute (%d, %s): \n" NONE, task->id, task->name); 
-  task->status = DONE;
+  //task->status = DONE;
   return 1;
 }
 
@@ -249,19 +268,24 @@ void *cj_Worker_entry_point (void *arg) {
   condition = 1;
   while (condition) {
     cj_Object *task;
-    /* Access ready_queue, a critical section. */
+
+    /* Critical section : access ready_queue. */
     cj_Lock_acquire(&schedule->run_lock[id]);
-    task = cj_Worker_wait_dqueue(me);
+    {
+      task = cj_Worker_wait_dqueue(me);
+    }
     cj_Lock_release(&schedule->run_lock[id]);
 
     if (task) {
       committed = cj_Worker_execute(task->task);
 
       if (committed) {
-        cj_Lock_acquire(&schedule->run_lock[id]);
+        //cj_Lock_acquire(&schedule->run_lock[id]);
+        /*
         schedule->time_remaining[id] -= task->task->cost;
         if (schedule->time_remaining[id] < 0.0) schedule->time_remaining[id] = 0.0;
-        cj_Lock_release(&schedule->run_lock[id]);
+        */
+        //cj_Lock_release(&schedule->run_lock[id]);
         cj_Task_dependencies_update(task);
       }
     }
@@ -334,7 +358,7 @@ void cj_Init(int nworker) {
     if (!cj.worker[i]) cj_error("Init", "memory allocation failed.");
   }
 
-  cj.ngpu = 1;
+  cj.ngpu = 3;
   cj.nmic = 0;
   for (i = 0; i < cj.ngpu; i++) {
     cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 
