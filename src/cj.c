@@ -130,7 +130,9 @@ void cj_Task_dependencies_update (cj_Object *target) {
     cj_Lock_acquire(&child->tsk_lock);
     child->num_dependencies_remaining --;
     if (child->num_dependencies_remaining < 0) cj_error("Task_dependencies_update", "Remaining dependencies can't be negative.");
-    if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
+    if (child->num_dependencies_remaining == 0 && child->status == NOTREADY) {
+      cj_Task_enqueue(cj_Object_append(CJ_TASK, (void*) child));
+    }
     cj_Lock_release(&child->tsk_lock);
     now = now->next;
   }
@@ -227,7 +229,8 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
 
 int cj_Worker_execute (cj_Task *task) {
   task->status = RUNNING;
-  sleep(1);
+  //sleep(1);
+  usleep((unsigned int) task->cost);
   fprintf(stderr, YELLOW "  Worker_execute (%d, %s): \n" NONE, task->id, task->name); 
   task->status = DONE;
   return 1;
@@ -278,11 +281,13 @@ void cj_Queue_begin() {
 
   while (now) {
     cj_Task *now_task = now->vertex->task;
+    cj_Lock_acquire(&now_task->tsk_lock);
     if (now_task->num_dependencies_remaining == 0 && now_task->status == NOTREADY) {
       fprintf(stderr, GREEN "  Sink Point (%d): \n" NONE, now_task->id);
       cj_Task_enqueue(cj_Object_append(CJ_TASK, now_task));
       //fprintf(stderr, GREEN "  ready_queue.size = %d: \n" NONE, schedule->ready_queue->dqueue->size);
     }
+      cj_Lock_release(&now_task->tsk_lock);
     now = now->next;
   }
 }
@@ -319,11 +324,6 @@ void cj_Init(int nworker) {
 
   cj_Autotune_init();
 
-  cj.ngpu = 1;
-  cj.nmic = 0;
-  for (i = 0; i < cj.ngpu; i++) cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 
-  for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) cj.device[i] = cj_Device_new(CJ_DEV_MIC, i);
-
   if (nworker <= 0) cj_error("Init", "Worker number should at least be 1.");
   cj.nworker = nworker;
   cj.worker = (cj_Worker **) malloc(nworker*sizeof(cj_Worker *));
@@ -333,6 +333,15 @@ void cj_Init(int nworker) {
     cj.worker[i] = cj_Worker_new(CJ_DEV_CPU, i);
     if (!cj.worker[i]) cj_error("Init", "memory allocation failed.");
   }
+
+  cj.ngpu = 1;
+  cj.nmic = 0;
+  for (i = 0; i < cj.ngpu; i++) {
+    cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 
+    cj_Device_bind(cj.worker[i + 1], cj.device[i]);
+  }
+  for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) cj.device[i] = cj_Device_new(CJ_DEV_MIC, i);
+
 
   /* Set up pthread_create parameters. */
   ret = pthread_attr_init(&cj.worker_attr);

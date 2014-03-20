@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #define AUTOTUNE_GRID 4
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 2048
 #define CACHE_LINE 32
 #define MAX_WORKER 8
 #define MAX_DEV 4
