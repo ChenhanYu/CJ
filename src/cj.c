@@ -311,7 +311,7 @@ void cj_Queue_begin() {
       cj_Task_enqueue(cj_Object_append(CJ_TASK, now_task));
       //fprintf(stderr, GREEN "  ready_queue.size = %d: \n" NONE, schedule->ready_queue->dqueue->size);
     }
-      cj_Lock_release(&now_task->tsk_lock);
+    cj_Lock_release(&now_task->tsk_lock);
     now = now->next;
   }
 }
@@ -343,9 +343,7 @@ void cj_Init(int nworker) {
   void *(*worker_entry_point)(void *);
 
   cj_Graph_init();
-
   cj_Schedule_init();
-
   cj_Autotune_init();
 
   if (nworker <= 0) cj_error("Init", "Worker number should at least be 1.");
@@ -364,7 +362,10 @@ void cj_Init(int nworker) {
     cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 
     cj_Device_bind(cj.worker[i + 1], cj.device[i]);
   }
-  for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) cj.device[i] = cj_Device_new(CJ_DEV_MIC, i);
+  for (i = cj.ngpu; i < cj.ngpu + cj.nmic; i++) {
+    cj.device[i] = cj_Device_new(CJ_DEV_MIC, i);
+    cj_Device_bind(cj.worker[i + 1], cj.device[i]);
+  }
 
 
   /* Set up pthread_create parameters. */

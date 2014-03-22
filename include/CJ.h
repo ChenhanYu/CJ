@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #define AUTOTUNE_GRID 4
-#define BLOCK_SIZE 2048
+#define BLOCK_SIZE 1024
 #define CACHE_LINE 32
 #define MAX_WORKER 8
 #define MAX_DEV 4
@@ -140,9 +140,10 @@ struct cj_s {
 
 struct cache_s {
   cj_cacheStatus status[CACHE_LINE];
-  char *dev_ptr[CACHE_LINE];
+  uintptr_t dev_ptr[CACHE_LINE];
   char *hos_ptr[CACHE_LINE];
   int last_use[CACHE_LINE];
+  int fifo;
   size_t line_size;
 };
 
