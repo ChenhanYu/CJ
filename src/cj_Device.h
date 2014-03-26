@@ -28,3 +28,6 @@ typedef struct device_s cj_Device;
 
 
 cj_Device *cj_Device_new(cj_devType, int);
+
+void cj_Device_memcpy_d2h (char*, uintptr_t, size_t, cj_devType);
+void cj_Device_memcpy_h2d (uintptr_t, char*, size_t, cj_devType);

@@ -246,12 +246,47 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
   return cost;
 }
 
-int cj_Worker_execute (cj_Task *task) {
+int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
+  cj_Object *now, *dist_now;
   task->status = RUNNING;
   //sleep(1);
+ 
+  now = task->arg->dqueue->head;
+  while (now) {
+    if (now->objtype == CJ_MATRIX) {
+      /* TODO : Make sure if I need to lock these memory to keep them from
+       * being replaced by others. */
+      cj_Matrix *matrix = now->matrix;
+      cj_Matrix *base = matrix->base;
+      cj_Object *dist = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+      dist_now = dist->dqueue->head;
+      cj_Distribution *distribution = NULL;
+      while (dist_now) {
+        if (dist_now->distribution->device_id == worker->device_id) {
+          distribution = dist_now->distribution;
+          /* TODO : Should I lock the memory here? */
+          break;
+        }
+        dist_now = dist_now->next;
+      }
+      if (!distribution) {
+        distribution = dist->dqueue->head->distribution;
+        if (worker->devtype == CJ_DEV_CPU) {
+          //cj_Cache_write_back(cj.device[distribution->device_id].cache, distribution->cache_id, );
+
+        }
+        else {
+          //cj_Cache_fetch(cj.device[worker->device_id].cache, );
+
+        }
+      }
+    }
+    now = now->next;
+  }
+  
   usleep((unsigned int) task->cost);
-  fprintf(stderr, YELLOW "  Worker_execute (%d, %s): \n" NONE, task->id, task->name); 
-  //task->status = DONE;
+  fprintf(stderr, YELLOW "  Worker_execute (%d, %s): \n" NONE, task->id, task->name);  
+   
   return 1;
 }
 
@@ -277,7 +312,7 @@ void *cj_Worker_entry_point (void *arg) {
     cj_Lock_release(&schedule->run_lock[id]);
 
     if (task) {
-      committed = cj_Worker_execute(task->task);
+      committed = cj_Worker_execute(task->task, me);
 
       if (committed) {
         //cj_Lock_acquire(&schedule->run_lock[id]);

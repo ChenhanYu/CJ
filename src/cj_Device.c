@@ -4,10 +4,11 @@
 #include <cuda_runtime_api.h>
 
 /*
-#include "cj_Device.h"
 #include "cj_Object.h"
 */
 #include <CJ.h>
+#include "cj_Device.h"
+
 
 static int gpu_counter = 0;
 static int mic_counter = 0;
@@ -20,6 +21,30 @@ void cj_Device_error (const char *func_name, char* msg_text) {
   exit(0);
 }
 
+void cj_Cache_read_in (cj_Cache *cache, char *ptr_h, int line_id, size_t len, cj_devType devtype) {
+  uintptr_t ptr_d = cache->dev_ptr[line_id];
+  if (devtype == CJ_DEV_CUDA) {
+    if (len < cache->line_size) cj_Device_memcpy_h2d(ptr_d, ptr_h, len, devtype);
+    else cj_Device_memcpy_h2d(ptr_d, ptr_h, cache->line_size, devtype);
+    cache->hos_ptr[line_id] = ptr_h;
+  }
+  /* Update the distribution. */
+
+  cache->status[line_id] = CJ_CACHE_CLEAN;
+}
+
+void cj_Cache_write_back (cj_Cache *cache, int line_id, size_t len, cj_devType devtype) {
+  uintptr_t ptr_d = cache->dev_ptr[line_id];
+  char *ptr_h = cache->hos_ptr[line_id];
+  if (devtype == CJ_DEV_CUDA) {
+    if (len < cache->line_size) cj_Device_memcpy_d2h(ptr_h, ptr_d, len, devtype);
+    else cj_Device_memcpy_d2h(ptr_h, ptr_d, cache->line_size, devtype);
+  }
+  /* Update the distribution. */
+
+  cache->status[line_id] = CJ_CACHE_CLEAN;
+}
+
 void cj_Cache_fetch (cj_Cache *cache, char *ptr_h, size_t len, cj_devType devtype) {
   int line_id = cache->fifo;
 
@@ -28,28 +53,10 @@ void cj_Cache_fetch (cj_Cache *cache, char *ptr_h, size_t len, cj_devType devtyp
   if (cache->fifo >= CACHE_LINE) cache->fifo = 0;
 
   if (devtype == CJ_DEV_CUDA) {
-    if (cache->status[line_id] == CJ_CLEAN_DIRTY) 
-    cj_Cache_read_
+    if (cache->status[line_id] == CJ_CACHE_DIRTY)
+      cj_Cache_write_back(cache, line_id, len, devtype); 
+    cj_Cache_read_in(cache, ptr_h, line_id, len, devtype);
   }
-}
-
-void cj_Cache_read_in (cj_Cache *cache, char *ptr_h, int line_id, size_t len, cj_devType devtype) {
-  char *ptr_d = (char *) cache->dev_ptr[line_id];
-  if (devtype == CJ_DEV_CUDA) {
-    if (len < cache->line_size) cj_Device_memcpy_h2d(ptr_d, ptr_h, len, devtype);
-    else cj_Device_memcpy_h2d(ptr_d, ptr_h, cache->line_size, devtype);
-    cache->hos_ptr[line_id] = ptr_h;
-  }
-  cache->status[line_id] = CJ_CACHE_CLEAN;
-}
-
-void cj_Cache_write_back (cj_Cache *cache, int line_id, size_t len, cj_devType devtype) {
-  cjar *ptr_h = cache->hos_ptr[line_id];
-  if (devtype == CJ_DEV_CUDA) {
-    if (len < cache->line_size) cj_Device_memcpy_d2h(ptr_h, ptr_d, len, devtype);
-    else cj_Device_memcpy_d2h(ptr_h, ptr_d, cache->line_size, devtype);
-  }
-  cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
 uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {
