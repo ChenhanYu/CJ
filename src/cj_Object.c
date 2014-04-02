@@ -17,6 +17,17 @@ void cj_Object_error (const char *func_name, char* msg_text) {
   exit(0);
 }
 
+void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {
+  cj_Distribution *dist_tar;
+  cj_Distribution *dist_obj;
+  if (object->objtype != CJ_DISTRIBUTION || target->objtype != CJ_DISTRIBUTION) 
+    cj_Object_error("Distribution_set", "The object and target are not a distribution.");
+  dist_tar = target->distribution;
+  dist_obj = object->distribution;
+  dist_tar->device_id = dist_obj->device_id;
+  dist_tar->cache_id = dist_obj->cache_id;
+}
+
 void cj_Distribution_set (cj_Object *object, int device_id, int cache_id) {
   cj_Distribution *distribution;
   if (object->objtype != CJ_DISTRIBUTION) cj_Object_error("Distribution_set", "The object is not a distribution.");
@@ -32,6 +43,7 @@ cj_Distribution *cj_Distribution_new () {
   /* -1 represent that this is distributed on CPU. */
   distribution->device_id = -1;
   distribution->cache_id = -1;
+  distribution->len = BLOCK_SIZE*BLOCK_SIZE*sizeof(double); 
   return distribution;
 }
 
@@ -164,27 +176,56 @@ void cj_Dqueue_clear(cj_Object *object) {
   if (object->objtype != CJ_DQUEUE) cj_Object_error("Dqueue_clear", "The object is not a dqueue.");
   while (cj_Dqueue_get_size(object) != 0) {
     tmp = cj_Dqueue_pop_tail(object);
+    free(tmp);
   }
+}
+
+void cj_Matrix_duplicate (cj_Object *object, cj_Object *target) {
+  /* This routine only duplicate the basic info. No dynamic memory allocation. */
+  if (object->objtype != CJ_MATRIX || target->objtype != CJ_MATRIX)
+    cj_Object_error("Matrix_duplicate", "The object or target is not a matrix.");
+   cj_Matrix *base, *copy;
+   base = object->matrix;
+   copy = target->matrix;
+
+   copy->eletype = base->eletype;
+   copy->elelen  = base->elelen;
+   copy->m       = base->m;
+   copy->n       = base->n;
+   copy->mb      = base->mb;
+   copy->nb      = base->nb;
+   copy->offm    = base->offm;
+   copy->offn    = base->offn;
+   copy->base    = base->base;
+   //copy->buff    = base->buff;
 }
 
 void cj_Matrix_set (cj_Object *object, int m, int n) {
   int i, j;
   cj_Matrix *matrix;
+  size_t elelen;
+
+  /* Check inputs' validities. */
   if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
-  matrix = object->matrix;
   if (m <= 0 && n <= 0) cj_Object_error("Matrix_new", "m and n should at least be 1.");
+
+  matrix = object->matrix;
   matrix->m = m;
   matrix->n = n;
   matrix->mb = (m - 1)/BLOCK_SIZE + 1;
   matrix->nb = (n - 1)/BLOCK_SIZE + 1;
   matrix->offm = 0;
   matrix->offn = 0;
+
+  elelen = matrix->elelen;
+
   matrix->rset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->rset) cj_Object_error("Matrix_new", "memory allocation failed.");
   matrix->wset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->wset) cj_Object_error("Matrix_new", "memory allocation failed.");
   matrix->dist = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   if (!matrix->dist) cj_Object_error("Matrix_new", "memory allocation failed.");
+
   for (i = 0; i < matrix->mb; i++) {
     matrix->rset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
     if (!matrix->rset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
@@ -192,6 +233,7 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
     if (!matrix->wset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
     matrix->dist[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
     if (!matrix->dist[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+
     for (j = 0; j < matrix->nb; j++) {
       matrix->rset[i][j] = cj_Object_new(CJ_DQUEUE);
       if (!matrix->rset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
@@ -199,12 +241,35 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
       if (!matrix->wset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
       matrix->dist[i][j] = cj_Object_new(CJ_DQUEUE);
       if (!matrix->dist[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+
       /* Setup the initial distribution. (only on CPU) */
       cj_Object *distribution = cj_Object_new(CJ_DISTRIBUTION);
-      cj_Distribution_set(distribution, -1, -1);
+      if (i == matrix->mb - 1) {
+        if (j == matrix->nb - 1) {
+          distribution->distribution->len = (m - i*BLOCK_SIZE)*(n - j*BLOCK_SIZE)*elelen;
+        }
+        else {
+          distribution->distribution->len = (m - i*BLOCK_SIZE)*(BLOCK_SIZE)*elelen;
+        }
+      }
+      else {
+        if (j == matrix->nb - 1) {
+          distribution->distribution->len = (BLOCK_SIZE)*(n - j*BLOCK_SIZE)*elelen;
+        }
+        else {
+          distribution->distribution->len = (BLOCK_SIZE)*(BLOCK_SIZE)*elelen;
+        }
+      }
+
       cj_Dqueue_push_tail(matrix->dist[i][j], distribution);
     }
   }
+
+  /* Allocate buffer. */
+  matrix->buff = (char *) malloc(m*n*elelen);
+  //cudaMallocHost((void**)&matrix->buff, m*n*elelen);
+  if (!matrix->buff) cj_Object_error("Matrix_new", "memory allocation failed.");
+
   matrix->base = object->matrix;
 }
 
@@ -212,6 +277,10 @@ cj_Matrix *cj_Matrix_new () {
   cj_Matrix *matrix;
   matrix = (cj_Matrix *) malloc(sizeof(cj_Matrix));
   if (!matrix) cj_Object_error("Matrix_new", "memory allocation failed.");
+
+  matrix->eletype = CJ_DOUBLE;
+  matrix->elelen = sizeof(double);
+
   matrix->m = 0;
   matrix->n = 0;
   matrix->mb = 0;
@@ -661,35 +730,89 @@ void cj_Matrix_delete (cj_Matrix *matrix) {
 
 }
 
-/*
-void cj_Vertex_set (cj_Object *object, cj_Object *target) {
-  cj_Vertex *vertex;
-  if (object->objtype != CJ_VERTEX) cj_Object_error("Vertex_set", "The object is not a vertex.");
-  if (target->objtype != CJ_TASK) cj_Object_error("Vertex_set", "The target is not a task.");
-  object->vertex->task = target->task;
+void cj_Matrix_set_identity (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
+  cj_Matrix *matrix = object->matrix;
+  if (matrix->m != matrix->n) cj_Object_error("Matrix_set_identity", "The matrix is not a sqaure matrix.");
+
+  int i, j;
+  
+  for (j = 0; j < matrix->n; j++) {
+    for (i = 0; i < matrix->m; i++) {
+      if (matrix->eletype == CJ_SINGLE) {
+        ((float *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i == j) ((float *) (matrix->buff))[i + j*matrix->m] = 1.0;
+      }
+      else {
+        ((double *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i == j) ((double *) (matrix->buff))[i + j*matrix->m] = 1.0;
+      }
+    }
+  }
+
 }
 
-cj_Vertex *cj_Vertex_new () {
-  cj_Vertex *vertex;
-  vertex = (cj_Vertex*) malloc(sizeof(cj_Vertex));
-  return vertex;
+void cj_Matrix_print (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
+
+  cj_Matrix *matrix = object->matrix;
+  int i, j;
+
+  if (matrix->n <= 32 && matrix->m <= 32) {
+    fprintf(stderr, "     ");
+    fprintf(stderr, "     ");
+    for (j = 0; j < matrix->n; j++) fprintf(stderr, "%4d ", j);
+    fprintf(stderr, "\n");
+    for (i = 0; i < matrix->m; i++) {
+      fprintf(stderr, "%4d ", i);
+      fprintf(stderr, "     ");
+      for (j = 0; j < matrix->n; j++) {
+        if (matrix->eletype == CJ_SINGLE) {
+          fprintf(stderr, "%4.2f ", ((float *) (matrix->buff))[i + j*matrix->m]);
+        }
+        else {
+          fprintf(stderr, "%4.2lf ", ((double *) (matrix->buff))[i + j*matrix->m]);
+        }
+      }
+      fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n");
+  } 
 }
 
-void cj_Edge_set (cj_Object *object, cj_Object *in, cj_Object *out) {
-  cj_Edge *edge;
-  if (object->objtype != CJ_EDGE) cj_Object_error("Edge_set", "The object is not a vertex.");
-  if (in->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 1.st target is not a task.");
-  if (out->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 2.nd target is not a task.");
-  object->edge->in = in->task;
-  object->edge->out = out->task;
-}
+void cj_Matrix_distribution_print (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
 
-cj_Edge *cj_Edge_new () {
-  cj_Edge *edge;
-  edge = (cj_Edge*) malloc(sizeof(cj_Edge));
-  return edge;
+  cj_Matrix *matrix = object->matrix;
+  cj_Object ***dist = matrix->dist;
+  int i, j, k;
+
+  if (matrix->nb <= 4 && matrix->mb <= 4) {
+    fprintf(stderr, "     ");
+    fprintf(stderr, "     ");
+    for (j = 0; j < matrix->nb; j++) fprintf(stderr, "%9d ", j);
+    fprintf(stderr, "\n");
+    for (i = 0; i < matrix->mb; i++) {
+      fprintf(stderr, "%4d ", i);
+      fprintf(stderr, "     ");
+      for (j = 0; j < matrix->nb; j++) {
+        cj_Object *now = dist[i][j]->dqueue->head;
+        int remain = 5;
+        while (now) {
+          fprintf(stderr, "%1d,", now->distribution->device_id);
+          now = now->next;
+          remain --;
+        }
+        for (k = 0; k < remain; k++) fprintf(stderr, "  ");
+      }
+      fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n");
+  }
 }
-*/
 
 
 cj_Object *cj_Object_append (cj_objType type, void *ptr) {

@@ -13,45 +13,103 @@
 #include "cj_Graph.h"
 #include "cj_Object.h"
 
+#include <cublas.h>
+
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
 }
 
-void cj_Gemm_nn_task_function (void *arg) {
+void cj_Gemm_nn_task_function (void *task_ptr) {
+  cj_Task *task = (cj_Task *) task_ptr;
+  //cj_Cache = task->worker->cj->device
+  cj_Object *A, *B, *C;
+  cj_Matrix *a, *b, *c;
+  A = task->arg_in->dqueue->head;
+  B = A->next;
+  C = B->next;
+  if (C->next != NULL) fprintf(stderr, "arg_in has been tanted.");
+  a = A->matrix;
+  b = B->matrix;
+  c = C->matrix;
 
+  if (task->worker->device_id != -1 && task->worker->devtype == CJ_DEV_CUDA) {
+    /*
+    cj_Object *a_now = a->dist->dqueue->head;
+    while (a_now->distribution-device_id != task->worker->device_id) a_now = a_now->next;
+     */
+  }
+  else {
+    if (a->eletype == CJ_SINGLE) {
+      float f_one = 1.0;
+      float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+      float *b_buff = (float *) (b->base->buff) + (b->base->m)*(b->offn) + b->offm;
+      float *c_buff = (float *) (c->base->buff) + (c->base->m)*(c->offn) + c->offm;
+      sgemm_("N", "N", &(c->m), &(a->n), &(c->n), &f_one, a_buff, &(a->base->m), b_buff, &(b->base->m), &f_one, c_buff, &(c->base->m));
+    }
+    else {
+      double f_one = 1.0;
+      double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+      double *b_buff = (double *) (b->base->buff) + (b->base->m)*(b->offn) + b->offm;
+      double *c_buff = (double *) (c->base->buff) + (c->base->m)*(c->offn) + c->offm;
+      dgemm_("N", "N", &(c->m), &(a->n), &(c->n), &f_one, a_buff, &(a->base->m), b_buff, &(b->base->m), &f_one, c_buff, &(c->base->m));
+    }
+  }
+
+  fprintf(stderr, YELLOW "  Worker_execute %d (%d, %s), A(%d, %d), B(%d, %d), C(%d, %d): \n" NONE, 
+      task->worker->id, task->id, task->name,
+      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE, 
+      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,  
+      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE);  
 }
 
 void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {
   /* Gemm will read A, B, C and write C. */
+  cj_Object *A_copy, *B_copy, *C_copy;
   cj_Matrix *a, *b, *c;
   cj_Object *A_r, *B_r, *C_r, *A_w, *B_w, *C_w;
   cj_Object *task, *vertex;
+  
+  /* Generate copies of A, B and C. */
+  A_copy = cj_Object_new(CJ_MATRIX);
+  B_copy = cj_Object_new(CJ_MATRIX);
+  C_copy = cj_Object_new(CJ_MATRIX);
+  cj_Matrix_duplicate(A, A_copy);
+  cj_Matrix_duplicate(B, B_copy);
+  cj_Matrix_duplicate(C, C_copy);
 
-  a = A->matrix; b = B->matrix; c = C->matrix;
+  a = A_copy->matrix; b = B_copy->matrix; c = C_copy->matrix;
 
-  /*
      fprintf(stderr, "          a->base : %d\n", (int)a->base);
      fprintf(stderr, "          b->base : %d\n", (int)b->base);
      fprintf(stderr, "          c->base : %d\n", (int)c->base);
      fprintf(stderr, "          a->offm : %d, a->offn : %d\n", a->offm, a->offn);
      fprintf(stderr, "          b->offm : %d, b->offn : %d\n", b->offm, b->offn);
      fprintf(stderr, "          c->offm : %d, c->offn : %d\n", c->offm, c->offn);
-     */
-
+     
   A_r = a->base->rset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
   B_r = b->base->rset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
   C_r = c->base->rset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+
   A_w = a->base->wset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
   B_w = b->base->wset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
   C_w = c->base->wset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
 
   task = cj_Object_new(CJ_TASK);
   cj_Task_set(task->task, &cj_Gemm_nn_task_function);
-  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, a));
-  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, b));
-  cj_Dqueue_push_tail(task->task->arg, cj_Object_append(CJ_MATRIX, c));
+
+  /* Pushing input arguments. */
+  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, a));
+  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, b));
+  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, c));
+
+  /* Exam the arguments. */
+
+
+
+  /* Pushing output arguments. */
+  cj_Dqueue_push_tail(task->task->arg_out, cj_Object_append(CJ_MATRIX, c));
 
   snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
       task->task->id,
@@ -71,6 +129,7 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
      */
 
   cj_Dqueue_push_tail(A_r, cj_Object_append(CJ_TASK, (void *) task->task));
+
   if (cj_Dqueue_get_size(A_w) > 0) {
     cj_Object *now = A_w->dqueue->head;
     while (now) {
@@ -136,6 +195,10 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Dqueue_clear(C_w);
   cj_Dqueue_push_tail(C_w, cj_Object_append(CJ_TASK, (void *) task->task));
   cj_Dqueue_clear(C_r);
+
+
+
+
 }
 
 void cj_Gebp_nn(cj_Object *A, cj_Object *B, cj_Object *C) {
@@ -237,7 +300,11 @@ void cj_Gemm_nn_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
         BB,      B2,       b, CJ_BOTTOM);
 
     /* ------------------------------------------------------------------ */
-    cj_Gepp_nn_blk_var1 (A1, B1, C);
+    //cj_Gepp_nn_blk_var1 (A1, B1, C);
+    cj_Object *alpha, *beta;
+    alpha = cj_Object_new(CJ_CONSTANT);
+    beta  = cj_Object_new(CJ_CONSTANT);
+    cj_Gemm_nn_task(alpha, A1, B1, beta, C);
     /* ------------------------------------------------------------------ */
 
     cj_Matrix_cont_with_1x3_to_1x2(AL, /**/ AR,       A0, A1, /**/ A2,

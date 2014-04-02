@@ -29,5 +29,11 @@ typedef struct device_s cj_Device;
 
 cj_Device *cj_Device_new(cj_devType, int);
 
+void cj_Cache_read_in (cj_Cache*, int, cj_Object*, cj_devType);
+void cj_Cache_write_back (cj_Cache*, int, cj_Object*, cj_devType);
+int cj_Cache_fetch (cj_Cache*, cj_Object*, cj_devType);
+
 void cj_Device_memcpy_d2h (char*, uintptr_t, size_t, cj_devType);
 void cj_Device_memcpy_h2d (uintptr_t, char*, size_t, cj_devType);
+void cj_Device_memcpy2d_d2h (char*, size_t, uintptr_t, size_t, size_t, size_t, cj_devType);
+void cj_Device_memcpy2d_h2d (uintptr_t, size_t, char*, size_t, size_t, size_t, cj_devType);

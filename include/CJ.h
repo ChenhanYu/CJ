@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #define AUTOTUNE_GRID 4
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 4
 #define CACHE_LINE 32
 #define MAX_WORKER 8
 #define MAX_DEV 4
@@ -24,6 +24,14 @@ typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 struct distribution_s {
   int device_id;
   int cache_id;
+  /* 1D memory features. */
+  size_t len;
+  /* 2D memory features. */
+  /*
+  size_t pitch;
+  size_t m;
+  size_t nbytes;
+  */
 };
 
 struct lock_s {
@@ -39,6 +47,7 @@ struct constant_s {
 
 struct matrix_s {
   cj_eleType eletype;
+  size_t elelen;
   int m;
   int n;
   int mb;
@@ -52,10 +61,12 @@ struct matrix_s {
   /* distribution */
   struct object_s ***dist;
   struct matrix_s *base;
+  char *buff;
 };
 
 struct task_s {
   cj_taskType tasktype;
+  struct worker_s *worker;
   char name[64];
   int id;
   struct lock_s tsk_lock;
@@ -69,7 +80,8 @@ struct task_s {
   struct object_s *in;
   struct object_s *out;
   /* Argument list */
-  struct object_s *arg;
+  struct object_s *arg_in;
+  struct object_s *arg_out;
   /* Destination */
 };
 

@@ -101,7 +101,11 @@ cj_Object *cj_Object_new (cj_objType);
 cj_Object *cj_Object_append (cj_objType, void*);
 
 /* cj_Matrix function prototypes */
+void cj_Matrix_duplicate (cj_Object*, cj_Object*);
 void cj_Matrix_set (cj_Object*, int, int);
+void cj_Matrix_set_identity (cj_Object*);
+void cj_Matrix_print (cj_Object*);
+void cj_Matrix_distribution_print (cj_Object*);
 void cj_Matrix_part_2x1 (cj_Object*, cj_Object*, cj_Object*, int, cj_Side);
 void cj_Matrix_part_1x2 (cj_Object*, cj_Object*, cj_Object*, int, cj_Side);
 void cj_Matrix_part_2x2 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, int, int, cj_Quadrant);
