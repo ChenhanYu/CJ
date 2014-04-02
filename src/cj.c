@@ -66,16 +66,77 @@ cj_Task *cj_Task_new () {
   if (!task->in) cj_error("Task_new", "memory allocation failed.");
   task->out = cj_Object_new(CJ_DQUEUE);
   if (!task->out) cj_error("Task_new", "memory allocation failed.");
+
+  task->arg = cj_Object_new(CJ_DQUEUE);
+  if (!task->arg) cj_error("Task_new", "memory allocation failed.");
+  /*
   task->arg_in = cj_Object_new(CJ_DQUEUE);
   if (!task->arg_in) cj_error("Task_new", "memory allocation failed.");
   task->arg_out = cj_Object_new(CJ_DQUEUE);
   if (!task->arg_out) cj_error("Task_new", "memory allocation failed.");
+  */
   task->status = NOTREADY;
   return task;
 }
 
 void cj_Task_set (cj_Task *task, void (*function)(void*)) {
   task->function = function;
+}
+
+void cj_Task_dependency_analysis (cj_Object *task) {
+  if (task->objtype != CJ_TASK)
+    cj_error("Task_dependency_analysis", "The object is not a task.");
+
+  /* Insert the task into the global dependency graph. */
+  cj_Object *vertex = cj_Object_new(CJ_VERTEX);
+  cj_Vertex_set(vertex, task);
+  cj_Graph_vertex_add(vertex);
+
+  /* Update read (input) dependencies. */
+  cj_Object *now = task->task->arg->dqueue->head;
+  cj_Object *set_r, *set_w;
+
+  while (now) {
+    if (now->objtype == CJ_MATRIX) {
+      cj_Matrix *matrix = now->matrix;
+      set_r = matrix->base->rset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+      set_w = matrix->base->wset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+
+      if (now->rwtype == CJ_R || now->rwtype == CJ_RW) {
+        cj_Dqueue_push_tail(set_r, cj_Object_append(CJ_TASK, (void *) task->task));
+        if (cj_Dqueue_get_size(set_w) > 0) {
+          cj_Object *now_w = set_w->dqueue->head;
+          while (now_w) {
+            if (now_w->task->id != task->task->id) {
+              cj_Object *edge = cj_Object_new(CJ_EDGE);
+              cj_Edge_set(edge, now_w, task);
+              cj_Graph_edge_add(edge);
+              cj_Task_dependency_add(now_w, task);
+              fprintf(stderr, "          %d->%d.\n", now_w->task->id, task->task->id);
+            }
+            now_w = now_w->next;
+          }
+        }
+      }
+      if (now->rwtype == CJ_W || now->rwtype == CJ_RW) {
+        cj_Object *now_r = set_r->dqueue->head; 
+        while (now_r) {
+          if (now_r->task->id != task->task->id) {
+            cj_Object *edge = cj_Object_new(CJ_EDGE);
+            cj_Edge_set(edge, now_r, task);
+            cj_Graph_edge_add(edge);
+            cj_Task_dependency_add(now_r, task);
+            fprintf(stderr, "          %d->%d. Anti-dependency.\n", now_r->task->id, task->task->id);
+          }
+          now_r = now_r->next;
+        }
+        cj_Dqueue_clear(set_w);
+        cj_Dqueue_push_tail(set_w, cj_Object_append(CJ_TASK, (void *) task->task));
+        cj_Dqueue_clear(set_r);
+      }
+    }
+    now = now->next;
+  }
 }
 
 void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
@@ -199,7 +260,7 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
     if (worker->devtype == CJ_DEV_CUDA) {
       comp_cost = model->cublas_sgemm[0];
       /* Scan through all arguments. */
-      now = task->arg_in->dqueue->head;
+      now = task->arg->dqueue->head;
       while (now) {
         if (now->objtype == CJ_MATRIX) {
           comm_cost = model->pci_bandwidth;
@@ -221,7 +282,7 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
     }
     else if (worker->devtype == CJ_DEV_CPU) {
       comp_cost = model->mkl_sgemm[0];
-      now = task->arg_in->dqueue->head;
+      now = task->arg->dqueue->head;
       while (now) {
         if (now->objtype == CJ_MATRIX) {
           comm_cost = model->pci_bandwidth;
@@ -253,7 +314,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   task->status = RUNNING;
   task->worker = worker;
 
-  now = task->arg_in->dqueue->head;
+  now = task->arg->dqueue->head;
   //while (now) {
   while (0) {
     if (now->objtype == CJ_MATRIX) {
@@ -315,24 +376,26 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   (*task->function)((void *) task);
   
   /* TODO : update output distribution. */
-  now = task->arg_out->dqueue->head;
+  now = task->arg->dqueue->head;
   //while (now) {
   while (0) {
-    if (now->objtype == CJ_MATRIX) {
-      cj_Matrix *matrix = now->matrix;
-      cj_Matrix *base = matrix->base;
-      cj_Object *dist = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
-      cj_Object *dist_new = cj_Object_new(CJ_DISTRIBUTION);
-      dist_now = dist->dqueue->head;
-      while (dist_now) {
-        if (dist_now->distribution->device_id == worker->device_id) {
-          cj_Distribution_duplicate(dist_new, dist_now);
-          break;
+    if (now->rwtype == CJ_W || now->rwtype == CJ_RW) {
+      if (now->objtype == CJ_MATRIX) {
+        cj_Matrix *matrix = now->matrix;
+        cj_Matrix *base = matrix->base;
+        cj_Object *dist = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+        cj_Object *dist_new = cj_Object_new(CJ_DISTRIBUTION);
+        dist_now = dist->dqueue->head;
+        while (dist_now) {
+          if (dist_now->distribution->device_id == worker->device_id) {
+            cj_Distribution_duplicate(dist_new, dist_now);
+            break;
+          }
+          dist_now = dist_now->next;
         }
-        dist_now = dist_now->next;
+        cj_Dqueue_clear(dist);
+        cj_Dqueue_push_tail(dist, dist_new);
       }
-      cj_Dqueue_clear(dist);
-      cj_Dqueue_push_tail(dist, dist_new);
     }
     now = now->next;
   }

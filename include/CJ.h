@@ -11,6 +11,7 @@
 
 typedef enum {CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CONSTANT} cj_objType;
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
+typedef enum {CJ_W, CJ_R, CJ_RW} cj_rwType;
 typedef enum {CJ_TOP, CJ_BOTTOM, CJ_LEFT, CJ_RIGHT} cj_Side;
 typedef enum {CJ_TL, CJ_TR, CJ_BL, CJ_BR} cj_Quadrant;
 typedef enum {ALLOCATED_ONLY, NOTREADY, QUEUED, RUNNING, DONE, CANCELLED} cj_taskStatus;
@@ -80,8 +81,11 @@ struct task_s {
   struct object_s *in;
   struct object_s *out;
   /* Argument list */
+  struct object_s *arg;
+/*  
   struct object_s *arg_in;
   struct object_s *arg_out;
+*/
   /* Destination */
 };
 
@@ -113,6 +117,7 @@ struct object_s {
   };
   struct object_s *prev;
   struct object_s *next;
+  cj_rwType rwtype;
 };
 
 

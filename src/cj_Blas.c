@@ -26,10 +26,10 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
   //cj_Cache = task->worker->cj->device
   cj_Object *A, *B, *C;
   cj_Matrix *a, *b, *c;
-  A = task->arg_in->dqueue->head;
+  A = task->arg->dqueue->head;
   B = A->next;
   C = B->next;
-  if (C->next != NULL) fprintf(stderr, "arg_in has been tanted.");
+  if (C->next != NULL) fprintf(stderr, "arg has been tanted.");
   a = A->matrix;
   b = B->matrix;
   c = C->matrix;
@@ -100,16 +100,15 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Task_set(task->task, &cj_Gemm_nn_task_function);
 
   /* Pushing input arguments. */
-  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, a));
-  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, b));
-  cj_Dqueue_push_tail(task->task->arg_in, cj_Object_append(CJ_MATRIX, c));
-
-  /* Exam the arguments. */
-
-
-
-  /* Pushing output arguments. */
-  cj_Dqueue_push_tail(task->task->arg_out, cj_Object_append(CJ_MATRIX, c));
+  cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
+  cj_Object *arg_B = cj_Object_append(CJ_MATRIX, b);
+  cj_Object *arg_C = cj_Object_append(CJ_MATRIX, c);
+  arg_A->rwtype = CJ_R;
+  arg_B->rwtype = CJ_R;
+  arg_C->rwtype = CJ_RW;
+  cj_Dqueue_push_tail(task->task->arg, arg_A);
+  cj_Dqueue_push_tail(task->task->arg, arg_B);
+  cj_Dqueue_push_tail(task->task->arg, arg_C);
 
   snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
       task->task->id,
@@ -117,16 +116,13 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
       b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
       c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
 
+  cj_Task_dependency_analysis(task);
+
   /* TODO : cj_Task_set() */
+  /*
   vertex = cj_Object_new(CJ_VERTEX);
   cj_Vertex_set(vertex, task);
   cj_Graph_vertex_add(vertex);
-
-  /*
-     fprintf(stderr, "          A_r->objtype is CJ_DQUEUE = %d\n", A_r->objtype == CJ_DQUEUE);
-     fprintf(stderr, "          B_r->objtype is CJ_DQUEUE = %d\n", B_r->objtype == CJ_DQUEUE);
-     fprintf(stderr, "          C_r->objtype is CJ_DQUEUE = %d\n", C_r->objtype == CJ_DQUEUE);
-     */
 
   cj_Dqueue_push_tail(A_r, cj_Object_append(CJ_TASK, (void *) task->task));
 
@@ -195,10 +191,7 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Dqueue_clear(C_w);
   cj_Dqueue_push_tail(C_w, cj_Object_append(CJ_TASK, (void *) task->task));
   cj_Dqueue_clear(C_r);
-
-
-
-
+*/
 }
 
 void cj_Gebp_nn(cj_Object *A, cj_Object *B, cj_Object *C) {
