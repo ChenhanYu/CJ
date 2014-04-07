@@ -234,6 +234,35 @@ cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   return task;
 }
 
+void cj_Worker_prefetch (cj_Worker *worker) {
+  /*
+  cj_Schedule *schedule = &cj.schedule;
+  cj_Object *task, *arg, *arg_cpu;
+  cj_Distribution *distribution;
+  task = schedule->read_queue[worker->id]->head;
+  if (task) {
+    arg = task->task->arg->dqueue->head;
+    while (arg) {
+      if (arg->distribution->device_id == worker->device_id) {
+        distribution = arg->distribution;
+        break;
+      }
+      if (arg->distribution->device_id == -1) arg_cpu = arg;
+      if (!distribution) {
+        distribution = task->task->dqueue->head->distribution;
+        int device_id = distribution->device_id;
+
+      }
+      arg = arg->next;
+    }
+  }
+  */
+}
+
+void cj_Worker_wait_prefetch (cj_Worker *worker) {
+
+}
+
 cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
   fprintf(stderr, RED "  Worker_new (%d): \n" NONE, id); 
   fprintf(stderr, "  {\n"); 
@@ -429,6 +458,7 @@ void *cj_Worker_entry_point (void *arg) {
     cj_Lock_release(&schedule->run_lock[id]);
 
     if (task) {
+      //cj_Worker_prefetch(me);
       committed = cj_Worker_execute(task->task, me);
 
       if (committed) {
@@ -440,6 +470,7 @@ void *cj_Worker_entry_point (void *arg) {
         //cj_Lock_release(&schedule->run_lock[id]);
         cj_Task_dependencies_update(task);
       }
+      //cj_Worer_wait_prefetch(me);
     }
   }
 

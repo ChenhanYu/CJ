@@ -50,7 +50,6 @@ void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
-//void cj_Cache_write_back (cj_Cache *cache, int line_id, size_t len, cj_devType devtype) {
 void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   uintptr_t ptr_d = cache->dev_ptr[line_id];
@@ -71,10 +70,28 @@ void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {
       */
     }
   }
-  /* Update the distribution. */
 
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
+
+void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *target) {
+  cj_Cache *cache = &device->cache;
+  uintptr_t ptr_d = cache->dev_ptr[line_id];
+  char *ptr_h = cache->hos_ptr[line_id];
+
+  if (device->devtype == CJ_DEV_CUDA) {
+    if (target->objtype == CJ_MATRIX) {
+      cudaSetDevice(device->id);
+      cj_Matrix *base = target->matrix->base;
+      cj_Matrix *matrix = target->matrix;
+      cj_Device_memcpy2d_d2h(ptr_h, base->m*base->elelen, ptr_d, BLOCK_SIZE*base->elelen,
+          matrix->m*matrix->elelen, matrix->n, device->devtype);
+    }
+    else {
+    }
+  }
+}
+
 
 int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   cj_Cache *cache = &device->cache;
@@ -93,6 +110,25 @@ int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   }
   return line_id;
 }
+
+/*
+int cj_Cache_async_fetch (cj_Device *device, cj_Object *target) {
+  cj_Cache *cache = &device->cache;
+  int line_id = cache->fifo;
+
+  cache->fifo ++;
+  if (cache->fifo >= CACHE_LINE) cache->fifo = 0;
+
+  if (device->devtype == CJ_DEV_CUDA) {
+    if (cache->status[line_id] == CJ_CACHE_DIRTY) {
+      cj_Cache_async_write_back(device, line_id, target);
+    }
+    cj_Cache_async_read_in(device, line_id, target);
+  }
+  return line_id;
+}
+*/
+
 
 uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {
   char *ptr;
