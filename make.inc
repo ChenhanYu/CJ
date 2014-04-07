@@ -21,6 +21,6 @@ INC            = -I../include
 #LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib64 -lcudart -lcublas -lpthread -lm -mkl=sequential 
 #LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib -lcudart -lcublas -lblas
 #LIB            = $(LIBCJ) -lpthread -lm -mkl=sequential
-LIB            = $(LIBCJ) -lblas
+LIB            = $(LIBCJ) -lpthread -lblas
 
 LDFLAGS        = $(INC) $(LIB)
