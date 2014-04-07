@@ -2,18 +2,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "cj_Macro.h"
-/*
-#include "cj_Device.h"
-#include "cj_Object.h"
-#include "cj_Graph.h"
-#include "cj.h"
-*/
+
 #include <CJ.h>
 #include "cj_Blas.h"
 #include "cj_Graph.h"
 #include "cj_Object.h"
 
+#ifdef CJ_HAVE_CUDA
 #include <cublas_v2.h>
+#endif
 
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);
@@ -39,6 +36,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
   //fprintf(stderr, "Here\n");
 
   if (device_id != -1 && devtype == CJ_DEV_CUDA) {
+#ifdef CJ_HAVE_CUDA
     cudaSetDevice(device_id);
     cj_Device *device = worker->cj_ptr->device[device_id];
     cj_Cache *cache = &(device->cache);
@@ -52,8 +50,6 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
     while (now_c->distribution->device_id != device_id && now_c != NULL) now_c = now_c->next;
     if (!now_a || !now_b || !now_c) 
       cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
-
-    //fprintf(stderr, "Here 1\n");
 
     if (a->eletype == CJ_SINGLE) { 
       float f_one = 1.0;
@@ -72,9 +68,9 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
       fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
       status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
           b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
-      if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
     }
-    //if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
+    if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
+#endif
   }
   else {
     if (a->eletype == CJ_SINGLE) {

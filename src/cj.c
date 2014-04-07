@@ -2,14 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-/*
-#include "cj_Device.h"
-#include "cj_Object.h"
-#include "cj_Graph.h"
-#include "cj_Macro.h"
-#include "cj_Autotune.h"
-#include "cj.h"
-*/
+
+
+
 #include <CJ.h>
 #include "cj_Macro.h"
 #include "cj_Device.h"
@@ -234,33 +229,115 @@ cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   return task;
 }
 
-void cj_Worker_prefetch (cj_Worker *worker) {
-  /*
-  cj_Schedule *schedule = &cj.schedule;
-  cj_Object *task, *arg, *arg_cpu;
-  cj_Distribution *distribution;
-  task = schedule->read_queue[worker->id]->head;
-  if (task) {
-    arg = task->task->arg->dqueue->head;
-    while (arg) {
-      if (arg->distribution->device_id == worker->device_id) {
-        distribution = arg->distribution;
-        break;
-      }
-      if (arg->distribution->device_id == -1) arg_cpu = arg;
-      if (!distribution) {
-        distribution = task->task->dqueue->head->distribution;
-        int device_id = distribution->device_id;
+void cj_Worker_fetch (cj_Task *task, cj_Worker *worker) {
+  cj_Object *now, *dist_now;
+  now = task->arg->dqueue->head;
 
+  while (now) {
+    if (now->objtype == CJ_MATRIX) {
+      /* TODO : Make sure if I need to lock these memory to keep them from
+       * being replaced by others. 
+       * */
+      cj_Matrix *matrix = now->matrix;
+      cj_Matrix *base = matrix->base;
+      cj_Object *dist = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+      dist_now = dist->dqueue->head;
+      cj_Distribution *distribution = NULL;
+      cj_Object *dist_cpu = NULL;
+
+      /* Check if there is a copy on this worker. */
+      while (dist_now) {
+        if (dist_now->distribution->device_id == worker->device_id) {
+          distribution = dist_now->distribution;
+          /* TODO : Should I lock the memory here? */
+          break;
+        }
+        /* CPU has a latest copy. */
+        if (dist_now->distribution->device_id == -1) {
+          fprintf(stderr, "CPU has the latest version.\n");
+          dist_cpu = dist_now;
+        }
+        dist_now = dist_now->next;
       }
-      arg = arg->next;
+      if (!distribution) {
+        distribution = dist->dqueue->head->distribution;
+        int device_id = distribution->device_id;
+        
+        /* Write back and update the distribution if cpu doesn't have the
+         * latest version. 
+         * */
+        if (!dist_cpu) {
+          cj_Cache_write_back(cj.device[device_id], distribution->cache_id, now);
+          dist_cpu = cj_Object_new(CJ_DISTRIBUTION);
+          cj_Dqueue_push_head(dist, dist_cpu);
+        }
+        if (worker->devtype != CJ_DEV_CPU) {
+          int cache_id;
+
+          /* TODO : specify ptr_h. */
+          char *ptr_h;
+
+          cj_Object *dist_dev = cj_Object_new(CJ_DISTRIBUTION);
+          fprintf(stderr, "Cache fetch. device = %d\n", cj.device[worker->device_id]->id);
+          cache_id = cj_Cache_fetch(cj.device[worker->device_id], now);
+          cj_Distribution_set(dist_dev, cj.device[worker->device_id], worker->device_id, cache_id);
+          cj_Dqueue_push_head(dist, dist_dev);
+        }
+      }
     }
+    now = now->next;
   }
-  */
+}
+
+void cj_Worker_prefetch (cj_Worker *worker) {
+  cj_Object *now, *dist_now;
+  cj_Schedule *schedule = &cj.schedule;
+  now = schedule->ready_queue[worker->id]->dqueue->head;
+
+  while (now) {
+    if (now->objtype == CJ_MATRIX) {
+      cj_Matrix *matrix = now->matrix;
+      cj_Matrix *base = matrix->base;
+      cj_Object *dist = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+      dist_now = dist->dqueue->head;
+      cj_Distribution *distribution = NULL;
+      cj_Object *dist_cpu = NULL;
+
+      while (dist_now) {
+        if (dist_now->distribution->device_id == worker->device_id) {
+          distribution = dist_now->distribution;
+          break;
+        }
+        if (dist_now->distribution->device_id == -1) dist_cpu = dist_now;
+        dist_now = dist_now->next;
+      }
+      if (!distribution) {
+        distribution = dist->dqueue->head->distribution;
+        int device_id = distribution->device_id;
+        
+        if (!dist_cpu) {
+          //cj_Cache_async_write_back(cj.device[device_id], distribution->cache_id, now);
+          dist_cpu = cj_Object_new(CJ_DISTRIBUTION);
+          cj_Dqueue_push_head(dist, dist_cpu);
+        }
+        if (worker->devtype != CJ_DEV_CPU) {
+          int cache_id;
+          char *ptr_h;
+
+          cj_Object *dist_dev = cj_Object_new(CJ_DISTRIBUTION);
+          fprintf(stderr, "Cache fetch. device = %d\n", cj.device[worker->device_id]->id);
+          //cache_id = cj_Cache_async_fetch(cj.device[worker->device_id], now);
+          cj_Distribution_set(dist_dev, cj.device[worker->device_id], worker->device_id, cache_id);
+          cj_Dqueue_push_head(dist, dist_dev);
+        }
+      }
+    }
+    now = now->next;
+  }
 }
 
 void cj_Worker_wait_prefetch (cj_Worker *worker) {
-
+  
 }
 
 cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
@@ -401,6 +478,8 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
     now = now->next;
   }
   
+  //cj_Worker_prefetch(me);
+  
   usleep((unsigned int) task->cost);
   (*task->function)((void *) task);
   
@@ -428,6 +507,8 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
     now = now->next;
   }
 
+  //cj_Worer_wait_prefetch(me);
+
   return 1;
 }
 
@@ -441,7 +522,9 @@ void *cj_Worker_entry_point (void *arg) {
   id = me->id;
   if (me->device_id != -1) {
     if (me->devtype == CJ_DEV_CUDA) {
+#ifdef CJ_HAVE_CUDA
       cudaSetDevice(me->device_id);
+#endif      
       fprintf(stderr, YELLOW "  Worker_entry_point (%d): device(%d) \n" NONE, id, me->device_id);
     }
   }
@@ -458,7 +541,6 @@ void *cj_Worker_entry_point (void *arg) {
     cj_Lock_release(&schedule->run_lock[id]);
 
     if (task) {
-      //cj_Worker_prefetch(me);
       committed = cj_Worker_execute(task->task, me);
 
       if (committed) {
@@ -470,7 +552,6 @@ void *cj_Worker_entry_point (void *arg) {
         //cj_Lock_release(&schedule->run_lock[id]);
         cj_Task_dependencies_update(task);
       }
-      //cj_Worer_wait_prefetch(me);
     }
   }
 
@@ -539,7 +620,7 @@ void cj_Init(int nworker) {
     if (!cj.worker[i]) cj_error("Init", "memory allocation failed.");
   }
 
-  cj.ngpu = 2;
+  cj.ngpu = 0;
   cj.nmic = 0;
   for (i = 0; i < cj.ngpu; i++) {
     cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 

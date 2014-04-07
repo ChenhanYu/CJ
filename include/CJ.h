@@ -1,7 +1,10 @@
 #include <stdarg.h>
 #include <pthread.h>
+
+#ifdef CJ_HAVE_CUDA
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+#endif
 
 #define AUTOTUNE_GRID 1
 #define BLOCK_SIZE 4
@@ -176,7 +179,10 @@ struct device_s {
   struct cache_s cache;
   int bindid;
   int bandwidth;
+#ifdef CJ_HAVE_CUDA
+  cudaStream_t stream;
   cublasHandle_t handle;
+#endif
 };
 
 struct graph_s {
