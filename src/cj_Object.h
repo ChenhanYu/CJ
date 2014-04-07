@@ -99,6 +99,7 @@ typedef struct lock_s   cj_Lock;
 /* cj_Object function prototypes */
 cj_Object *cj_Object_new (cj_objType);
 cj_Object *cj_Object_append (cj_objType, void*);
+void cj_Object_acquire (cj_Object*);
 
 /* cj_Matrix function prototypes */
 void cj_Matrix_duplicate (cj_Object*, cj_Object*);

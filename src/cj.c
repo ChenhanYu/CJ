@@ -163,11 +163,11 @@ void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
 }
 
 void cj_Task_enqueue(cj_Object *target) {
+  if (target->objtype != CJ_TASK) cj_error("Task_enqueue", "The object is not a task.");
+
   int i, dest;
   float cost, min_time = -1.0;
   cj_Schedule *schedule = &cj.schedule;
-
-  if (target->objtype != CJ_TASK) cj_error("Task_enqueue", "The object is not a task.");
 
   dest = 1;
 
@@ -258,7 +258,8 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
 
   if (task->function == &cj_Gemm_nn_task_function) {
     if (worker->devtype == CJ_DEV_CUDA) {
-      comp_cost = model->cublas_sgemm[0];
+      //comp_cost = model->cublas_sgemm[0];
+      comp_cost = model->cublas_dgemm[0];
       /* Scan through all arguments. */
       now = task->arg->dqueue->head;
       while (now) {
@@ -281,7 +282,8 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
       }
     }
     else if (worker->devtype == CJ_DEV_CPU) {
-      comp_cost = model->mkl_sgemm[0];
+      //comp_cost = model->mkl_sgemm[0];
+      comp_cost = model->mkl_dgemm[0];
       now = task->arg->dqueue->head;
       while (now) {
         if (now->objtype == CJ_MATRIX) {
@@ -315,8 +317,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   task->worker = worker;
 
   now = task->arg->dqueue->head;
-  //while (now) {
-  while (0) {
+  while (now) {
     if (now->objtype == CJ_MATRIX) {
       /* TODO : Make sure if I need to lock these memory to keep them from
        * being replaced by others. 
@@ -350,9 +351,8 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
          * latest version. 
          * */
         if (!dist_cpu) {
+          cj_Cache_write_back(cj.device[device_id], distribution->cache_id, now);
           dist_cpu = cj_Object_new(CJ_DISTRIBUTION);
-          cj_Cache_write_back(&cj.device[device_id]->cache, distribution->cache_id, now, cj.device[device_id]->devtype);
-          //cj_Distribution_set(dist_cpu, -1, -1);          
           cj_Dqueue_push_head(dist, dist_cpu);
         }
         if (worker->devtype != CJ_DEV_CPU) {
@@ -362,9 +362,9 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
           char *ptr_h;
 
           cj_Object *dist_dev = cj_Object_new(CJ_DISTRIBUTION);
-          fprintf(stderr, "Cache fetch.\n");
-          cache_id = cj_Cache_fetch(&cj.device[worker->device_id]->cache, now, worker->devtype);
-          cj_Distribution_set(dist_dev, worker->device_id, cache_id);
+          fprintf(stderr, "Cache fetch. device = %d\n", cj.device[worker->device_id]->id);
+          cache_id = cj_Cache_fetch(cj.device[worker->device_id], now);
+          cj_Distribution_set(dist_dev, cj.device[worker->device_id], worker->device_id, cache_id);
           cj_Dqueue_push_head(dist, dist_dev);
         }
       }
@@ -377,8 +377,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   
   /* TODO : update output distribution. */
   now = task->arg->dqueue->head;
-  //while (now) {
-  while (0) {
+  while (now) {
     if (now->rwtype == CJ_W || now->rwtype == CJ_RW) {
       if (now->objtype == CJ_MATRIX) {
         cj_Matrix *matrix = now->matrix;
@@ -399,6 +398,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
     }
     now = now->next;
   }
+
   return 1;
 }
 
@@ -411,9 +411,11 @@ void *cj_Worker_entry_point (void *arg) {
   me = (cj_Worker *) arg;
   id = me->id;
   if (me->device_id != -1) {
-    if (me->devtype == CJ_DEV_CUDA) cudaSetDevice(me->device_id);
+    if (me->devtype == CJ_DEV_CUDA) {
+      cudaSetDevice(me->device_id);
+      fprintf(stderr, YELLOW "  Worker_entry_point (%d): device(%d) \n" NONE, id, me->device_id);
+    }
   }
-  //fprintf(stderr, YELLOW "  Worker_entry_point (%d): \n" NONE, id);
 
   condition = 1;
   while (condition) {
@@ -506,7 +508,7 @@ void cj_Init(int nworker) {
     if (!cj.worker[i]) cj_error("Init", "memory allocation failed.");
   }
 
-  cj.ngpu = 0;
+  cj.ngpu = 2;
   cj.nmic = 0;
   for (i = 0; i < cj.ngpu; i++) {
     cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 

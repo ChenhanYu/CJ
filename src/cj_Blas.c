@@ -13,7 +13,7 @@
 #include "cj_Graph.h"
 #include "cj_Object.h"
 
-#include <cublas.h>
+#include <cublas_v2.h>
 
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);
@@ -23,22 +23,58 @@ void cj_Blas_error (const char *func_name, char* msg_text) {
 
 void cj_Gemm_nn_task_function (void *task_ptr) {
   cj_Task *task = (cj_Task *) task_ptr;
-  //cj_Cache = task->worker->cj->device
+  cj_Worker *worker = task->worker;
+  cj_devType devtype = worker->devtype;
+  int device_id = worker->device_id;
+
   cj_Object *A, *B, *C;
   cj_Matrix *a, *b, *c;
   A = task->arg->dqueue->head;
   B = A->next;
   C = B->next;
-  if (C->next != NULL) fprintf(stderr, "arg has been tanted.");
   a = A->matrix;
   b = B->matrix;
   c = C->matrix;
 
-  if (task->worker->device_id != -1 && task->worker->devtype == CJ_DEV_CUDA) {
-    /*
-    cj_Object *a_now = a->dist->dqueue->head;
-    while (a_now->distribution-device_id != task->worker->device_id) a_now = a_now->next;
-     */
+  //fprintf(stderr, "Here\n");
+
+  if (device_id != -1 && devtype == CJ_DEV_CUDA) {
+    cudaSetDevice(device_id);
+    cj_Device *device = worker->cj_ptr->device[device_id];
+    cj_Cache *cache = &(device->cache);
+    cublasHandle_t *handle = &(device->handle);
+    cublasStatus_t status;
+    cj_Object *now_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE]->dqueue->head;
+    cj_Object *now_b = b->base->dist[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE]->dqueue->head;
+    cj_Object *now_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE]->dqueue->head;
+    while (now_a->distribution->device_id != device_id && now_a != NULL) now_a = now_a->next;
+    while (now_b->distribution->device_id != device_id && now_b != NULL) now_b = now_b->next;
+    while (now_c->distribution->device_id != device_id && now_c != NULL) now_c = now_c->next;
+    if (!now_a || !now_b || !now_c) 
+      cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
+
+    //fprintf(stderr, "Here 1\n");
+
+    if (a->eletype == CJ_SINGLE) { 
+      float f_one = 1.0;
+      float *a_buff = (float *) cache->dev_ptr[now_a->distribution->cache_id];
+      float *b_buff = (float *) cache->dev_ptr[now_b->distribution->cache_id];
+      float *c_buff = (float *) cache->dev_ptr[now_c->distribution->cache_id];
+      status = cublasSgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
+          b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
+    }
+    else {
+      double f_one = 1.0;
+      double *a_buff = (double *) cache->dev_ptr[now_a->distribution->cache_id];
+      double *b_buff = (double *) cache->dev_ptr[now_b->distribution->cache_id];
+      double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
+      fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
+      fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
+      status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
+          b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
+      if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
+    }
+    //if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
   }
   else {
     if (a->eletype == CJ_SINGLE) {
@@ -66,10 +102,8 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
 
 void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {
   /* Gemm will read A, B, C and write C. */
-  cj_Object *A_copy, *B_copy, *C_copy;
+  cj_Object *A_copy, *B_copy, *C_copy, *task;
   cj_Matrix *a, *b, *c;
-  cj_Object *A_r, *B_r, *C_r, *A_w, *B_w, *C_w;
-  cj_Object *task, *vertex;
   
   /* Generate copies of A, B and C. */
   A_copy = cj_Object_new(CJ_MATRIX);
@@ -80,26 +114,19 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Matrix_duplicate(C, C_copy);
 
   a = A_copy->matrix; b = B_copy->matrix; c = C_copy->matrix;
-
+  /*
      fprintf(stderr, "          a->base : %d\n", (int)a->base);
      fprintf(stderr, "          b->base : %d\n", (int)b->base);
      fprintf(stderr, "          c->base : %d\n", (int)c->base);
      fprintf(stderr, "          a->offm : %d, a->offn : %d\n", a->offm, a->offn);
      fprintf(stderr, "          b->offm : %d, b->offn : %d\n", b->offm, b->offn);
      fprintf(stderr, "          c->offm : %d, c->offn : %d\n", c->offm, c->offn);
-     
-  A_r = a->base->rset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
-  B_r = b->base->rset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
-  C_r = c->base->rset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
-
-  A_w = a->base->wset[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
-  B_w = b->base->wset[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
-  C_w = c->base->wset[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+  */   
 
   task = cj_Object_new(CJ_TASK);
   cj_Task_set(task->task, &cj_Gemm_nn_task_function);
 
-  /* Pushing input arguments. */
+  /* Pushing arguments. */
   cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
   cj_Object *arg_B = cj_Object_append(CJ_MATRIX, b);
   cj_Object *arg_C = cj_Object_append(CJ_MATRIX, c);
@@ -110,6 +137,7 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Dqueue_push_tail(task->task->arg, arg_B);
   cj_Dqueue_push_tail(task->task->arg, arg_C);
 
+  /* Setup task name. */
   snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
       task->task->id,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
@@ -117,81 +145,6 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
       c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
 
   cj_Task_dependency_analysis(task);
-
-  /* TODO : cj_Task_set() */
-  /*
-  vertex = cj_Object_new(CJ_VERTEX);
-  cj_Vertex_set(vertex, task);
-  cj_Graph_vertex_add(vertex);
-
-  cj_Dqueue_push_tail(A_r, cj_Object_append(CJ_TASK, (void *) task->task));
-
-  if (cj_Dqueue_get_size(A_w) > 0) {
-    cj_Object *now = A_w->dqueue->head;
-    while (now) {
-      if (now->task != task->task) {
-        cj_Object *edge;
-        edge = cj_Object_new(CJ_EDGE);
-        cj_Edge_set(edge, now, task);
-        cj_Graph_edge_add(edge);
-        cj_Task_dependency_add(now, task);
-        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
-      }
-      now = now->next;
-    }
-  }
-
-  cj_Dqueue_push_tail(B_r, cj_Object_append(CJ_TASK, (void *) task->task));
-  if (cj_Dqueue_get_size(B_w) > 0) {
-    cj_Object *now = B_w->dqueue->head;
-    while (now) {
-      if (now->task != task->task) {
-        cj_Object *edge;
-        edge = cj_Object_new(CJ_EDGE);
-        cj_Edge_set(edge, now, task);
-        cj_Graph_edge_add(edge);
-        cj_Task_dependency_add(now, task);
-        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
-      }
-      now = now->next;
-    }
-  }
-
-  cj_Dqueue_push_tail(C_r, cj_Object_append(CJ_TASK, (void *) task->task));
-
-  if (cj_Dqueue_get_size(C_w) > 0) {
-    cj_Object *now = C_w->dqueue->head;
-    while (now) {
-      if (now->task != task->task) {
-        cj_Object *edge;
-        edge = cj_Object_new(CJ_EDGE);
-        cj_Edge_set(edge, now, task);
-        cj_Graph_edge_add(edge);
-        cj_Task_dependency_add(now, task);
-        fprintf(stderr, "          %d->%d.\n", now->task->id, task->task->id);
-      }
-      now = now->next;
-    }
-  }
-
-  if (cj_Dqueue_get_size(C_r) > 0) {
-    cj_Object *now = C_r->dqueue->head; 
-    while (now) {
-      if (now->task->id != task->task->id) {
-        cj_Object *edge;
-        edge = cj_Object_new(CJ_EDGE);
-        cj_Edge_set(edge, now, task);
-        cj_Graph_edge_add(edge);
-        cj_Task_dependency_add(now, task);
-        fprintf(stderr, "          %d->%d. Anti-dependency.\n", now->task->id, now->task->id);
-      }
-      now = now->next;
-    }
-  }
-  cj_Dqueue_clear(C_w);
-  cj_Dqueue_push_tail(C_w, cj_Object_append(CJ_TASK, (void *) task->task));
-  cj_Dqueue_clear(C_r);
-*/
 }
 
 void cj_Gebp_nn(cj_Object *A, cj_Object *B, cj_Object *C) {

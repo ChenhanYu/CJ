@@ -1,8 +1,10 @@
 #include <stdarg.h>
 #include <pthread.h>
+#include <cuda_runtime_api.h>
+#include <cublas_v2.h>
 
-#define AUTOTUNE_GRID 4
-#define BLOCK_SIZE 4
+#define AUTOTUNE_GRID 1
+#define BLOCK_SIZE 8192
 #define CACHE_LINE 32
 #define MAX_WORKER 8
 #define MAX_DEV 4
@@ -23,6 +25,7 @@ typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
 typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 
 struct distribution_s {
+  struct device_s *device;
   int device_id;
   int cache_id;
   /* 1D memory features. */
@@ -123,7 +126,9 @@ struct object_s {
 
 struct autotune_s {
   float mkl_sgemm[AUTOTUNE_GRID];
+  float mkl_dgemm[AUTOTUNE_GRID];
   float cublas_sgemm[AUTOTUNE_GRID];
+  float cublas_dgemm[AUTOTUNE_GRID];
   float pci_bandwidth;
 };
 
@@ -171,6 +176,7 @@ struct device_s {
   struct cache_s cache;
   int bindid;
   int bandwidth;
+  cublasHandle_t handle;
 };
 
 struct graph_s {

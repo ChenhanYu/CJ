@@ -22,7 +22,9 @@ void cj_Autotune_cublas () {
   int i, nb, ld;
   float time_ms = 0.0;
   float fone = 1.0;
+  double done = 1.0;
   float *A, *B, *C;
+  double *dA, *dB, *dC;
 
   cublasStatus_t status;
   cublasHandle_t handle;
@@ -36,11 +38,13 @@ void cj_Autotune_cublas () {
   cudaMalloc((void**)&A, ld*ld*sizeof(float));
   cudaMalloc((void**)&B, ld*ld*sizeof(float));
   cudaMalloc((void**)&C, ld*ld*sizeof(float));
+  cudaMalloc((void**)&dA, ld*ld*sizeof(double));
+  cudaMalloc((void**)&dB, ld*ld*sizeof(double));
+  cudaMalloc((void**)&dC, ld*ld*sizeof(double));
 
   for (i = 0; i < AUTOTUNE_GRID; i++) {
     nb = (i + 1)*BLOCK_SIZE;
     cudaEventRecord(beg, 0);
-    //cublasSgemm('N', 'N', nb, nb, nb, 1.0, A, ld, B, ld, 1.0, C, ld);
     status = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, nb, nb, nb, &fone, A, ld, B, ld, &fone, C, ld);
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
@@ -49,7 +53,19 @@ void cj_Autotune_cublas () {
     autotune->cublas_sgemm[i] = time_ms;
   }
 
+  for (i = 0; i < AUTOTUNE_GRID; i++) {
+    nb = (i + 1)*BLOCK_SIZE;
+    cudaEventRecord(beg, 0);
+    status = cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, nb, nb, nb, &done, dA, ld, dB, ld, &done, dC, ld);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  cublasDgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->cublas_dgemm[i] = time_ms;
+  }
+
   cudaFree(A); cudaFree(B); cudaFree(C);
+  cudaFree(dA); cudaFree(dB); cudaFree(dC);
   cudaEventDestroy(beg); cudaEventDestroy(end);
   cublasDestroy(handle);
 }
@@ -58,6 +74,7 @@ void cj_Autotune_mkl () {
   int i, nb, ld;
   float time_ms = 0.0;
   float fone = 1.0;
+  double done = 1.0;
 
   cudaEvent_t beg, end;
   cudaEventCreate(&beg); cudaEventCreate(&end);
@@ -67,7 +84,9 @@ void cj_Autotune_mkl () {
   float *A = malloc(ld*ld*sizeof(float));
   float *B = malloc(ld*ld*sizeof(float));
   float *C = malloc(ld*ld*sizeof(float));
-
+  double *dA = malloc(ld*ld*sizeof(double));
+  double *dB = malloc(ld*ld*sizeof(double));
+  double *dC = malloc(ld*ld*sizeof(double));
 
   for (i = 0; i < AUTOTUNE_GRID; i++) {
     nb = (i + 1)*BLOCK_SIZE;
@@ -80,22 +99,38 @@ void cj_Autotune_mkl () {
     autotune->mkl_sgemm[i] = time_ms;
   }
 
+  for (i = 0; i < AUTOTUNE_GRID; i++) {
+    nb = (i + 1)*BLOCK_SIZE;
+    cudaEventRecord(beg, 0);
+    dgemm_("N", "N", &nb, &nb, &nb, &done, dA, &ld, dB, &ld, &done, dC, &ld);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  Dgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_dgemm[i] = time_ms;
+  }
+
   free(A); free(B); free(C);
+  free(dA); free(dB); free(dC);
   cudaEventDestroy(beg); cudaEventDestroy(end);
 }
 
 void cj_Autotune_pci () {
-  float *dev_A, *hos_A;
+  //float *dev_A, *hos_A;
+  double *dev_A, *hos_A;
   float time_ms = 0.0;
   int n = BLOCK_SIZE;
-  cudaMallocHost((void**)&hos_A, n*n*sizeof(float));
-  cudaMalloc((void**)&dev_A, n*n*sizeof(float));
+  //cudaMallocHost((void**)&hos_A, n*n*sizeof(float));
+  //cudaMalloc((void**)&dev_A, n*n*sizeof(float));
+  cudaMallocHost((void**)&hos_A, n*n*sizeof(double));
+  cudaMalloc((void**)&dev_A, n*n*sizeof(double));
 
   cudaEvent_t beg, end;
   cudaEventCreate(&beg); cudaEventCreate(&end);
 
   cudaEventRecord(beg, 0);
-  cudaMemcpy(dev_A, hos_A, n*n*sizeof(float), cudaMemcpyHostToDevice);
+  //cudaMemcpy(dev_A, hos_A, n*n*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(dev_A, hos_A, n*n*sizeof(double), cudaMemcpyHostToDevice);
   cudaEventRecord(end, 0);
   cudaEventSynchronize(end);
   cudaEventElapsedTime(&time_ms, beg, end);
