@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "cj_Macro.h"
 
+#include "cj_Macro.h"
 #include <CJ.h>
+#include "cj.h"
 #include "cj_Blas.h"
 #include "cj_Graph.h"
 #include "cj_Object.h"

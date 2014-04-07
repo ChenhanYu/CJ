@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <CJ.h>
 #include "../src/cj_Object.h"
@@ -42,22 +43,22 @@ int main () {
   
   cj_Gemm_nn(A, B, C);
   cj_Gemm_nn(A, C, D);
-  cj_Gemm_nn(A, C, C);
-  cj_Gemm_nn(A, A, B);
-  cj_Gemm_nn(A, B, B);
+  //cj_Gemm_nn(A, C, C);
+  //cj_Gemm_nn(A, A, B);
+  //cj_Gemm_nn(A, B, B);
 
-  sleep(5);
-  cj_Matrix_distribution_print(A);
-  cj_Matrix_distribution_print(B);
-  cj_Matrix_distribution_print(C);
-  cj_Matrix_distribution_print(D);
+  sleep(1);
+  //cj_Matrix_distribution_print(A);
+  //cj_Matrix_distribution_print(B);
+  //cj_Matrix_distribution_print(C);
+  //cj_Matrix_distribution_print(D);
   
   //usleep(10000);
   //sleep(2);
   //cj_Object_acquire(C);
   //cj_Object_acquire(D);
-  //cj_Matrix_print(C);
-  //cj_Matrix_print(D);
+  cj_Matrix_print(C);
+  cj_Matrix_print(D);
   
   cj_Term();
 

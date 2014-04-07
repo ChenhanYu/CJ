@@ -9,6 +9,7 @@
 #endif
 
 #include <CJ.h>
+#include "cj_Blas.h"
 
 static cj_Autotune *autotune;
 

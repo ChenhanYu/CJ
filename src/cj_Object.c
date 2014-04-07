@@ -11,6 +11,7 @@
 #include "cj.h"
 #include "cj_Graph.h"
 #include "cj_Object.h"
+#include "cj_Device.h"
 
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);

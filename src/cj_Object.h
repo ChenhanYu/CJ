@@ -122,3 +122,6 @@ cj_Object *cj_Dqueue_pop_head (cj_Object*);
 void cj_Dqueue_push_tail (cj_Object*, cj_Object*);
 cj_Object *cj_Dqueue_pop_tail (cj_Object*);
 void cj_Dqueue_clear(cj_Object*);
+
+void cj_Distribution_set (cj_Object*, cj_Device*, int, int);
+void cj_Distribution_duplicate (cj_Object*, cj_Object*);

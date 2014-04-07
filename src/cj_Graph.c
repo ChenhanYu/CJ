@@ -19,8 +19,8 @@ void cj_Graph_error (const char *func_name, char* msg_text) {
 
 void cj_Vertex_set (cj_Object *object, cj_Object *target) {
   cj_Vertex *vertex;
-  if (object->objtype != CJ_VERTEX) cj_Object_error("Vertex_set", "The object is not a vertex.");
-  if (target->objtype != CJ_TASK) cj_Object_error("Vertex_set", "The target is not a task.");
+  if (object->objtype != CJ_VERTEX) cj_Graph_error("Vertex_set", "The object is not a vertex.");
+  if (target->objtype != CJ_TASK) cj_Graph_error("Vertex_set", "The target is not a task.");
   object->vertex->task = target->task;
 }
 
@@ -32,9 +32,9 @@ cj_Vertex *cj_Vertex_new () {
 
 void cj_Edge_set (cj_Object *object, cj_Object *in, cj_Object *out) {
   cj_Edge *edge;
-  if (object->objtype != CJ_EDGE) cj_Object_error("Edge_set", "The object is not a vertex.");
-  if (in->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 1.st target is not a task.");
-  if (out->objtype != CJ_TASK) cj_Object_error("Edge_set", "The 2.nd target is not a task.");
+  if (object->objtype != CJ_EDGE) cj_Graph_error("Edge_set", "The object is not a vertex.");
+  if (in->objtype != CJ_TASK) cj_Graph_error("Edge_set", "The 1.st target is not a task.");
+  if (out->objtype != CJ_TASK) cj_Graph_error("Edge_set", "The 2.nd target is not a task.");
   object->edge->in = in->task;
   object->edge->out = out->task;
 }

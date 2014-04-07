@@ -3,8 +3,6 @@
 #include <stdint.h>
 #include <unistd.h>
 
-
-
 #include <CJ.h>
 #include "cj_Macro.h"
 #include "cj_Device.h"
