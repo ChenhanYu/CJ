@@ -34,8 +34,6 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
   b = B->matrix;
   c = C->matrix;
 
-  //fprintf(stderr, "Here\n");
-
   if (device_id != -1 && devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
     cudaSetDevice(device_id);
@@ -353,10 +351,6 @@ void cj_Gemm_nn_blk_var5 (cj_Object *A, cj_Object *B, cj_Object *C) {
   fprintf(stderr, "}\n");
 }
 
-void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {
-
-}
-
 void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Matrix *a, *b, *c;
   if (!A || !B || !C) 
@@ -374,6 +368,91 @@ void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Queue_begin();
 }
 
+
+void cj_Syrk_ln_blk_var3 (cj_Object *A, cj_Object *C) {
+  cj_Object *AT,  *A0,  *AB,  *A1,  *A2;
+  cj_Object *CTL, *CTR, *C00, *C01, *C02,
+            *CBL, *CBR, *C10, *C11, *C12,
+                        *C20, *C21, *C22;
+
+  fprintf(stderr, "Syrk_ln_blk_var3 (A(%d, %d), C(%d, %d)): \n", 
+      A->matrix->m, A->matrix->n,
+      C->matrix->m, C->matrix->n);
+  fprintf(stderr, "{\n");
+
+  AT = cj_Object_new(CJ_MATRIX);  A0 = cj_Object_new(CJ_MATRIX);
+  AB = cj_Object_new(CJ_MATRIX);  A1 = cj_Object_new(CJ_MATRIX);
+                                  A2 = cj_Object_new(CJ_MATRIX);
+
+  CTL = cj_Object_new(CJ_MATRIX); CTR = cj_Object_new(CJ_MATRIX); 
+  C00 = cj_Object_new(CJ_MATRIX); C01 = cj_Object_new(CJ_MATRIX); C02 = cj_Object_new(CJ_MATRIX);
+
+  CBL = cj_Object_new(CJ_MATRIX); CBR = cj_Object_new(CJ_MATRIX);
+  C10 = cj_Object_new(CJ_MATRIX); C11 = cj_Object_new(CJ_MATRIX); C12 = cj_Object_new(CJ_MATRIX);
+  C20 = cj_Object_new(CJ_MATRIX); C21 = cj_Object_new(CJ_MATRIX); C22 = cj_Object_new(CJ_MATRIX);
+
+  int b;
+
+  cj_Matrix_part_2x1(A,     AT,
+                            AB,          0,    CJ_BOTTOM);
+  cj_Matrix_part_2x2(C,     CTL, CTR,
+                            CBL, CBR,    0, 0, CJ_BR);
+
+  while (AB->matrix->m < A->matrix->m) {
+    b = min(AT->matrix->m, BLOCK_SIZE);
+
+    cj_Matrix_repart_2x1_to_3x1(AT,           A0,
+                             /* ** */      /* ** */
+                                              A1,
+                                AB,           A2,      b,  CJ_BOTTOM);
+
+    cj_Matrix_repart_2x1_to_3x1(CTL, /**/ CTR,       C00, C01, /**/ C02,
+                                                     C10, C11, /**/ C12,
+                            /* ************** */  /* ****************** */
+                                CBL, /**/ CBR,       C20, C21, /**/ C22,
+                                b, b, CJ_TL);
+
+    /* ------------------------------------------------------------------ */
+    //cj_Gemm_nt(A2, A1, C21);
+    /* ------------------------------------------------------------------ */
+
+  }
+
+  fprintf(stderr, "}\n");
+}
+
+void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {
+  cj_Object *AL, *AR, *A0, *A1, *A2;
+
+  fprintf(stderr, "Syrk_ln_blk_var5 (A(%d, %d), C(%d, %d)): \n", 
+      A->matrix->m, A->matrix->n,
+      C->matrix->m, C->matrix->n);
+  fprintf(stderr, "{\n");
+
+  AL = cj_Object_new(CJ_MATRIX); AR = cj_Object_new(CJ_MATRIX);
+  A0 = cj_Object_new(CJ_MATRIX); A1 = cj_Object_new(CJ_MATRIX); A2 = cj_Object_new(CJ_MATRIX);
+
+  int b;
+
+  cj_Matrix_part_1x2(A, AL, AR, 0, CJ_LEFT);
+
+  while (AL->matrix->n < A->matrix->n) {
+    b = min(AR->matrix->n, BLOCK_SIZE);
+
+    cj_Matrix_repart_1x2_to_1x3(AL, /**/ AR,       A0, /**/ A1, A2,
+        b, CJ_RIGHT);
+
+    /* ------------------------------------------------------------------ */
+    //cj_Syrk_ln_blk_var3(A1, C);
+    /* ------------------------------------------------------------------ */
+
+    cj_Matrix_cont_with_1x3_to_1x2(AL, /**/ AR,       A0, A1, /**/ A2,
+        CJ_LEFT);
+  }
+  fprintf(stderr, "}\n");
+}
+
+
 void cj_Syrk_ln (cj_Object *A, cj_Object *C) {
   cj_Matrix *a, *c;
   if (!A || !C) 
@@ -385,5 +464,7 @@ void cj_Syrk_ln (cj_Object *A, cj_Object *C) {
   if ((a->m != a->n) || (c->m != c->n) || (c->m != a->m)) 
     cj_Blas_error("syrk_ln", "matrices dimension aren't matched.");
 
+  cj_Queue_end();
   cj_Syrk_ln_blk_var5(A, C);
+  cj_Queue_begin();
 }
