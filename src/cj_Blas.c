@@ -398,7 +398,7 @@ void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {
 	
     /*------------------------------------------------------------*/
 
-    CJ_Cont_with_1x3_to_1x2( AL,  /**/ AR,        A0, A1, /**/ A2,
+    cj_Matrix_cont_with_1x3_to_1x2( AL,  /**/ AR,        A0, A1, /**/ A2,
                               CJ_LEFT );
   }
 
@@ -467,12 +467,12 @@ void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {
 //
 //    /*------------------------------------------------------------*/
 //
-//    cj_Cont_with_3x1_to_2x1( AT,                A0, 
+//    cj_Matrix_cont_with_3x1_to_2x1( AT,                A0, 
 //                                                A1, 
 //                          /* ** */           /* ** */
 //                             AB,                A2,     cj_TOP );
 //
-//    cj_Cont_with_3x3_to_2x2( CTL, /**/ CTR,       C00, C01, /**/ C02,
+//    cj_Matrix_cont_with_3x3_to_2x2( CTL, /**/ CTR,       C00, C01, /**/ C02,
 //                                                  C10, C11, /**/ C12,
 //                          /* ************** */  /* ****************** */
 //                             CBL, /**/ CBR,       C20, C21, /**/ C22,
@@ -510,21 +510,20 @@ void cj_Syrk_ln_blk_var1 (cj_Object *A, cj_Object *C) {
   cj_Matrix_part_2x1(A, AT,
                         AB,     0, CJ_TOP);
   cj_Matrix_part_2x2(C, CTL, CTR,
-                        CBL, CBR,     0, CJ_TL);
+                        CBL, CBR,     0, 0,  CJ_TL);
   while (AT->matrix->n < A->matrix->n) {
 	b = min(AB->matrix->n, BLOCK_SIZE);
 
-	cj_Matrix_repart_2x1_to_3x1(AT,    
     cj_Matrix_repart_2x1_to_3x1(AT,                A0, 
                              /* ** */            /* ** */
                                                    A1, 
                                 AB,                A2,        b, CJ_BOTTOM );
 
-//    cj_Repart_2x2_to_3x3( CTL, /**/ CTR,       C00, /**/ C01, C02,
-//                        /* ************* */   /* ******************** */
-//                                               C10, /**/ C11, C12,
-//                          CBL, /**/ CBR,       C20, /**/ C21, C22,
-//                          b, b, cj_BR );
+    cj_Matrix_repart_2x2_to_3x3( CTL, /**/ CTR,       C00, /**/ C01, C02,
+                        /* ************* */   /* ******************** */
+                                               C10, /**/ C11, C12,
+                          CBL, /**/ CBR,       C20, /**/ C21, C22,
+                          b, b, CJ_BR );
 
     /*------------------------------------------------------------*/
 
@@ -547,19 +546,19 @@ void cj_Syrk_ln_blk_var1 (cj_Object *A, cj_Object *C) {
 
     /*------------------------------------------------------------*/
 
-//    cj_Cont_with_3x1_to_2x1( AT,                A0, 
-//                                                A1, 
-//                          /* ** */           /* ** */
-//                             AB,                A2,     cj_TOP );
-//
-//    cj_Cont_with_3x3_to_2x2( CTL, /**/ CTR,       C00, C01, /**/ C02,
-//                                                  C10, C11, /**/ C12,
-//                            /* ************** */  /* ****************** */
-//                             CBL, /**/ CBR,       C20, C21, /**/ C22,
-//                             cj_TL );
-//
-//
-//
+    cj_Matrix_cont_with_3x1_to_2x1( AT,                A0, 
+                                                A1, 
+                          /* ** */           /* ** */
+                             AB,                A2,     CJ_TOP );
+
+    cj_Matrix_cont_with_3x3_to_2x2( CTL, /**/ CTR,       C00, C01, /**/ C02,
+                                                         C10, C11, /**/ C12,
+                                 /* ************** */  /* ****************** */
+                                    CBL, /**/ CBR,       C20, C21, /**/ C22,
+                                    CJ_TL );
+
+
+
   }
 
 }
