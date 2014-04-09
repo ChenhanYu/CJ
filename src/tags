@@ -1,0 +1,131 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BLUE	cj_Macro.h	9;"	d
+BROWN	cj_Macro.h	16;"	d
+CJ_DIR	Makefile	/^CJ_DIR = ..$/;"	m
+CYAN	cj_Macro.h	12;"	d
+DARY_GRAY	cj_Macro.h	11;"	d
+D_CC_OBJ	Makefile	/^D_CC_OBJ = $(D_CC_SRC:.c=.o)$/;"	m
+D_CC_SRC	Makefile	/^D_CC_SRC = cj.c \\$/;"	m
+GREEN	cj_Macro.h	7;"	d
+LIGHT_BLUE	cj_Macro.h	10;"	d
+LIGHT_CYAN	cj_Macro.h	13;"	d
+LIGHT_GRAY	cj_Macro.h	18;"	d
+LIGHT_GREEN	cj_Macro.h	8;"	d
+LIGHT_PURPLE	cj_Macro.h	15;"	d
+LIGHT_RED	cj_Macro.h	6;"	d
+NONE	cj_Macro.h	4;"	d
+PURPLE	cj_Macro.h	14;"	d
+RED	cj_Macro.h	5;"	d
+WHITE	cj_Macro.h	19;"	d
+YELLOW	cj_Macro.h	17;"	d
+autotune	cj_Autotune.c	/^static cj_Autotune *autotune;$/;"	v	file:
+cj	cj.c	/^static cj_t cj;$/;"	v	file:
+cj_Autotune_cublas	cj_Autotune.c	/^void cj_Autotune_cublas () {$/;"	f
+cj_Autotune_error	cj_Autotune.c	/^void cj_Autotune_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Autotune_get_ptr	cj_Autotune.c	/^cj_Autotune *cj_Autotune_get_ptr () {$/;"	f
+cj_Autotune_init	cj_Autotune.c	/^void cj_Autotune_init () {$/;"	f
+cj_Autotune_mkl	cj_Autotune.c	/^void cj_Autotune_mkl () {$/;"	f
+cj_Autotune_pci	cj_Autotune.c	/^void cj_Autotune_pci () {$/;"	f
+cj_Blas_error	cj_Blas.c	/^void cj_Blas_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Cache_fetch	cj_Device.c	/^int cj_Cache_fetch (cj_Device *device, cj_Object *target) {$/;"	f
+cj_Cache_read_in	cj_Device.c	/^void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {$/;"	f
+cj_Cache_sync	cj_Device.c	/^void cj_Cache_sync (cj_Device *device) {$/;"	f
+cj_Cache_write_back	cj_Device.c	/^void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {$/;"	f
+cj_Device_bind	cj_Device.c	/^void cj_Device_bind(cj_Worker *worker, cj_Device *device) {$/;"	f
+cj_Device_error	cj_Device.c	/^void cj_Device_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Device_free	cj_Device.c	/^void cj_Device_free (uintptr_t ptr, cj_devType devtype) {$/;"	f
+cj_Device_malloc	cj_Device.c	/^uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {$/;"	f
+cj_Device_memcpy2d_d2h	cj_Device.c	/^void cj_Device_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_t pitch_d, $/;"	f
+cj_Device_memcpy2d_h2d	cj_Device.c	/^void cj_Device_memcpy2d_h2d (uintptr_t ptr_d, size_t pitch_d, char *ptr_h, size_t pitch_h, $/;"	f
+cj_Device_memcpy_d2h	cj_Device.c	/^void cj_Device_memcpy_d2h (char *ptr_h, uintptr_t ptr_d, size_t len, cj_Device *device) {$/;"	f
+cj_Device_memcpy_h2d	cj_Device.c	/^void cj_Device_memcpy_h2d (uintptr_t ptr_d, char *ptr_h, size_t len, cj_Device *device) {$/;"	f
+cj_Device_new	cj_Device.c	/^cj_Device *cj_Device_new(cj_devType devtype, int device_id) {$/;"	f
+cj_Device_report	cj_Device.c	/^void cj_Device_report(cj_Device *device) {$/;"	f
+cj_Distribution_duplicate	cj_Object.c	/^void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {$/;"	f
+cj_Distribution_new	cj_Object.c	/^cj_Distribution *cj_Distribution_new () {$/;"	f
+cj_Distribution_set	cj_Object.c	/^void cj_Distribution_set (cj_Object *object, cj_Device *device, int device_id, int cache_id) {$/;"	f
+cj_Dqueue_clear	cj_Object.c	/^void cj_Dqueue_clear(cj_Object *object) {$/;"	f
+cj_Dqueue_get_size	cj_Object.c	/^int cj_Dqueue_get_size (cj_Object *object) {$/;"	f
+cj_Dqueue_new	cj_Object.c	/^cj_Dqueue *cj_Dqueue_new () {$/;"	f
+cj_Dqueue_pop_head	cj_Object.c	/^cj_Object *cj_Dqueue_pop_head (cj_Object *object) {$/;"	f
+cj_Dqueue_pop_tail	cj_Object.c	/^cj_Object *cj_Dqueue_pop_tail (cj_Object *object) {$/;"	f
+cj_Dqueue_push_head	cj_Object.c	/^void cj_Dqueue_push_head (cj_Object *object, cj_Object *target) {$/;"	f
+cj_Dqueue_push_tail	cj_Object.c	/^void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {$/;"	f
+cj_Edge_new	cj_Graph.c	/^cj_Edge *cj_Edge_new () {$/;"	f
+cj_Edge_set	cj_Graph.c	/^void cj_Edge_set (cj_Object *object, cj_Object *in, cj_Object *out) {$/;"	f
+cj_Gebp_nn	cj_Blas.c	/^void cj_Gebp_nn(cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Gemm_nn	cj_Blas.c	/^void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Gemm_nn_blk_var1	cj_Blas.c	/^void cj_Gemm_nn_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Gemm_nn_blk_var3	cj_Blas.c	/^void cj_Gemm_nn_blk_var3 (cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Gemm_nn_blk_var5	cj_Blas.c	/^void cj_Gemm_nn_blk_var5 (cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Gemm_nn_task	cj_Blas.c	/^void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {$/;"	f
+cj_Gemm_nn_task_function	cj_Blas.c	/^void cj_Gemm_nn_task_function (void *task_ptr) {$/;"	f
+cj_Gepp_nn_blk_var1	cj_Blas.c	/^void cj_Gepp_nn_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
+cj_Graph_edge_add	cj_Graph.c	/^void cj_Graph_edge_add (cj_Object *edge) {$/;"	f
+cj_Graph_error	cj_Graph.c	/^void cj_Graph_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Graph_init	cj_Graph.c	/^void cj_Graph_init () {$/;"	f
+cj_Graph_output_dot	cj_Graph.c	/^void cj_Graph_output_dot () {$/;"	f
+cj_Graph_vertex_add	cj_Graph.c	/^void cj_Graph_vertex_add (cj_Object *vertex) {$/;"	f
+cj_Graph_vertex_get	cj_Graph.c	/^cj_Object *cj_Graph_vertex_get () {return graph->vertex;};$/;"	f
+cj_Init	cj.c	/^void cj_Init(int nworker) {$/;"	f
+cj_Lapack_error	cj_Lapack.c	/^void cj_Lapack_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Lock_acquire	cj.c	/^void cj_Lock_acquire (cj_Lock *lock) {$/;"	f
+cj_Lock_delete	cj.c	/^void cj_Lock_delete (cj_Lock *lock) {$/;"	f
+cj_Lock_new	cj.c	/^void cj_Lock_new (cj_Lock *lock) {$/;"	f
+cj_Lock_release	cj.c	/^void cj_Lock_release (cj_Lock *lock) {$/;"	f
+cj_Matrix_cont_with_1x3_to_1x2	cj_Object.c	/^void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR,$/;"	f
+cj_Matrix_cont_with_2x2_to_3x3	cj_Object.c	/^void cj_Matrix_cont_with_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,$/;"	f
+cj_Matrix_cont_with_3x1_to_2x1	cj_Object.c	/^void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,$/;"	f
+cj_Matrix_delete	cj_Object.c	/^void cj_Matrix_delete (cj_Matrix *matrix) {$/;"	f
+cj_Matrix_distribution_print	cj_Object.c	/^void cj_Matrix_distribution_print (cj_Object *object) {$/;"	f
+cj_Matrix_duplicate	cj_Object.c	/^void cj_Matrix_duplicate (cj_Object *object, cj_Object *target) {$/;"	f
+cj_Matrix_new	cj_Object.c	/^cj_Matrix *cj_Matrix_new () {$/;"	f
+cj_Matrix_part_1x2	cj_Object.c	/^void cj_Matrix_part_1x2 (cj_Object *A, cj_Object *A1, cj_Object *A2,$/;"	f
+cj_Matrix_part_2x1	cj_Object.c	/^void cj_Matrix_part_2x1 (cj_Object *A, cj_Object *A1,$/;"	f
+cj_Matrix_part_2x2	cj_Object.c	/^void cj_Matrix_part_2x2 (cj_Object *A, cj_Object *A11, cj_Object *A12,$/;"	f
+cj_Matrix_print	cj_Object.c	/^void cj_Matrix_print (cj_Object *object) {$/;"	f
+cj_Matrix_repart_1x2_to_1x3	cj_Object.c	/^void cj_Matrix_repart_1x2_to_1x3 (cj_Object *AL,                cj_Object *AR,$/;"	f
+cj_Matrix_repart_2x1_to_3x1	cj_Object.c	/^void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,$/;"	f
+cj_Matrix_repart_2x2_to_3x3	cj_Object.c	/^void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,$/;"	f
+cj_Matrix_set	cj_Object.c	/^void cj_Matrix_set (cj_Object *object, int m, int n) {$/;"	f
+cj_Matrix_set_identity	cj_Object.c	/^void cj_Matrix_set_identity (cj_Object *object) {$/;"	f
+cj_Object_acquire	cj_Object.c	/^void cj_Object_acquire (cj_Object *object) {$/;"	f
+cj_Object_append	cj_Object.c	/^cj_Object *cj_Object_append (cj_objType type, void *ptr) {$/;"	f
+cj_Object_error	cj_Object.c	/^void cj_Object_error (const char *func_name, char* msg_text) {$/;"	f
+cj_Object_new	cj_Object.c	/^cj_Object *cj_Object_new (cj_objType type) {$/;"	f
+cj_Queue_begin	cj.c	/^void cj_Queue_begin() {$/;"	f
+cj_Queue_end	cj.c	/^void cj_Queue_end() {$/;"	f
+cj_Schedule_init	cj.c	/^void cj_Schedule_init() {$/;"	f
+cj_Syrk_ln	cj_Blas.c	/^void cj_Syrk_ln (cj_Object *A, cj_Object *C) {$/;"	f
+cj_Syrk_ln_blk_var1	cj_Blas.c	/^void cj_Syrk_ln_blk_var1 (cj_Object *A, cj_Object *C) {$/;"	f
+cj_Syrk_ln_blk_var5	cj_Blas.c	/^void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {$/;"	f
+cj_Task_dependencies_update	cj.c	/^void cj_Task_dependencies_update (cj_Object *target) {$/;"	f
+cj_Task_dependency_add	cj.c	/^void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {$/;"	f
+cj_Task_dependency_analysis	cj.c	/^void cj_Task_dependency_analysis (cj_Object *task) {$/;"	f
+cj_Task_enqueue	cj.c	/^void cj_Task_enqueue(cj_Object *target) {$/;"	f
+cj_Task_new	cj.c	/^cj_Task *cj_Task_new () {$/;"	f
+cj_Task_set	cj.c	/^void cj_Task_set (cj_Task *task, void (*function)(void*)) {$/;"	f
+cj_Term	cj.c	/^void cj_Term() {$/;"	f
+cj_Vertex_new	cj_Graph.c	/^cj_Vertex *cj_Vertex_new () {$/;"	f
+cj_Vertex_set	cj_Graph.c	/^void cj_Vertex_set (cj_Object *object, cj_Object *target) {$/;"	f
+cj_Worker_entry_point	cj.c	/^void *cj_Worker_entry_point (void *arg) {$/;"	f
+cj_Worker_estimate_cost	cj.c	/^float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {$/;"	f
+cj_Worker_execute	cj.c	/^int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {$/;"	f
+cj_Worker_fetch	cj.c	/^void cj_Worker_fetch (cj_Task *task, cj_Worker *worker) {$/;"	f
+cj_Worker_new	cj.c	/^cj_Worker *cj_Worker_new (cj_devType devtype, int id) {$/;"	f
+cj_Worker_prefetch	cj.c	/^void cj_Worker_prefetch (cj_Worker *worker) {$/;"	f
+cj_Worker_wait_dqueue	cj.c	/^cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {$/;"	f
+cj_Worker_wait_prefetch	cj.c	/^void cj_Worker_wait_prefetch (cj_Worker *worker) {$/;"	f
+cj_error	cj.c	/^void cj_error (const char *func_name, char* msg_text) {$/;"	f
+cj_queue_enable	cj.c	/^static cj_Bool cj_queue_enable = FALSE;$/;"	v	file:
+gpu_counter	cj_Device.c	/^static int gpu_counter = 0;$/;"	v	file:
+graph	cj_Graph.c	/^static cj_Graph *graph;$/;"	v	file:
+max	cj_Macro.h	2;"	d
+mic_counter	cj_Device.c	/^static int mic_counter = 0;$/;"	v	file:
+min	cj_Macro.h	1;"	d
+taskid	cj.c	/^static int taskid = 0;$/;"	v	file:
