@@ -149,8 +149,10 @@ void cj_Device_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_
 #ifdef CJ_HAVE_CUDA
     cudaError_t error; 
     cudaSetDevice(device->id);
+    /*
     fprintf(stderr, "memcpy2d_d2h : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
         (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
+        */
     error = cudaMemcpy2D(ptr_h, pitch_h, (char *) ptr_d, pitch_d, mbytes, n, cudaMemcpyDeviceToHost);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
@@ -163,8 +165,10 @@ void cj_Device_async_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d,
 #ifdef CJ_HAVE_CUDA
     cudaError_t error; 
     cudaSetDevice(device->id);
+    /*
     fprintf(stderr, "memcpy2d_d2h : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
         (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
+        */
     error = cudaMemcpy2DAsync(ptr_h, pitch_h, (char *) ptr_d, pitch_d, mbytes, n, cudaMemcpyDeviceToHost, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
@@ -189,8 +193,10 @@ void cj_Device_memcpy2d_h2d (uintptr_t ptr_d, size_t pitch_d, char *ptr_h, size_
 #ifdef CJ_HAVE_CUDA
     cudaError_t error; 
     cudaSetDevice(device->id);
+    /*
     fprintf(stderr, "memcpy2d_h2d : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
         (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
+        */
     //error = cudaMemcpy2D((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice);
     error = cudaMemcpy2DAsync((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));

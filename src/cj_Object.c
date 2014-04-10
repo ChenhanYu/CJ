@@ -19,10 +19,8 @@ void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {
   if (object->objtype != CJ_DISTRIBUTION || target->objtype != CJ_DISTRIBUTION) { 
     cj_Object_error("Distribution_set", "The object and target are not a distribution.");
   }
-  cj_Distribution *dist_tar;
-  cj_Distribution *dist_obj;
-  dist_tar = target->distribution;
-  dist_obj = object->distribution;
+  cj_Distribution *dist_tar = target->distribution;
+  cj_Distribution *dist_obj = target->distribution;
 
   dist_tar->device    = dist_obj->device;
   dist_tar->device_id = dist_obj->device_id;
@@ -42,6 +40,7 @@ void cj_Distribution_set (cj_Object *object, cj_Device *device, int device_id, i
 cj_Distribution *cj_Distribution_new () {
   cj_Distribution *dist = (cj_Distribution *) malloc(sizeof(cj_Distribution));
   if (!dist) cj_Object_error("Distribution_new", "memory allocation failed.");
+
   /* -1 represent that this is distributed on CPU. */
   dist->device    = NULL;
   dist->device_id = -1;
@@ -53,7 +52,6 @@ cj_Distribution *cj_Distribution_new () {
 int cj_Dqueue_get_size (cj_Object *object) {
   if (object->objtype != CJ_DQUEUE) {
     cj_Object_error("Dqueue_get_size", "The object is not a dqueue.");
-    return (object->dqueue->size);
   }
   return (object->dqueue->size);
 }
@@ -226,7 +224,6 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
   matrix->offn  = 0;
   matrix->base  = object->matrix;
 #ifdef CJ_HAVE_CUDA
-  fprintf(stderr, "cudaMallocHost()\n");
   cudaMallocHost((void**)&(matrix->buff), m*n*elelen);
 #else
   matrix->buff  = (char *) malloc(m*n*elelen);
@@ -286,37 +283,37 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
 }
 
 cj_Matrix *cj_Matrix_new () {
-  cj_Matrix *matrix;
-  matrix = (cj_Matrix *) malloc(sizeof(cj_Matrix));
+  cj_Matrix *matrix = (cj_Matrix *) malloc(sizeof(cj_Matrix));
   if (!matrix) cj_Object_error("Matrix_new", "memory allocation failed.");
 
   matrix->eletype = CJ_DOUBLE;
   matrix->elelen = sizeof(double);
 
-  matrix->m = 0;
-  matrix->n = 0;
-  matrix->mb = 0;
-  matrix->nb = 0;;
+  matrix->m    = 0;
+  matrix->n    = 0;
+  matrix->mb   = 0;
+  matrix->nb   = 0;
   matrix->offm = 0;
   matrix->offn = 0;
   matrix->rset = NULL;
   matrix->wset = NULL;
   matrix->dist = NULL;
   matrix->base = NULL;
+  matrix->buff = NULL;
   return matrix; 
 }
 
 /* This routine is rewritten based on libflame. */
 void cj_Matrix_part_2x1 (cj_Object *A, cj_Object *A1,
-    cj_Object *A2,
-    int mb,       cj_Side side) {
-  cj_Matrix *a, *a1, *a2;
-
-  if (A->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+                                       cj_Object *A2,
+                                       int mb, cj_Side side) {
+  if (A->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) {
     cj_Object_error("matrix_part_2x1", "This is not a matrix.");
-  a = A->matrix;
-  a1 = A1->matrix;
-  a2 = A2->matrix;
+  }
+  cj_Matrix *a  = A->matrix;
+  cj_Matrix *a1 = A1->matrix;
+  cj_Matrix *a2 = A2->matrix;
+
   if (mb > a->m) mb = a->m; 
   if (side == CJ_BOTTOM) mb = a->m - mb;
 
@@ -334,14 +331,14 @@ void cj_Matrix_part_2x1 (cj_Object *A, cj_Object *A1,
 }
 
 void cj_Matrix_part_1x2 (cj_Object *A, cj_Object *A1, cj_Object *A2,
-    int nb,        cj_Side side) {
-  cj_Matrix *a, *a1, *a2;
-
-  if (A->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+                                       int nb, cj_Side side) {
+  if (A->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX)  {
     cj_Object_error("matrix_part_1x2", "This is not a matrix.");
-  a = A->matrix;
-  a1 = A1->matrix;
-  a2 = A2->matrix;
+  }
+  cj_Matrix *a  = A->matrix;
+  cj_Matrix *a1 = A1->matrix;
+  cj_Matrix *a2 = A2->matrix;
+
   if (nb > a->n) nb = a->n; 
   if (side == CJ_RIGHT) nb = a->n - nb;
 
@@ -359,18 +356,17 @@ void cj_Matrix_part_1x2 (cj_Object *A, cj_Object *A1, cj_Object *A2,
 }
 
 void cj_Matrix_part_2x2 (cj_Object *A, cj_Object *A11, cj_Object *A12,
-    cj_Object *A21, cj_Object *A22,
-    int mb,       int nb,         cj_Quadrant quadrant) {
-  cj_Matrix *a, *a11, *a12, *a21, *a22;
-
+                                       cj_Object *A21, cj_Object *A22,
+                                       int mb, int nb, cj_Quadrant quadrant) {
   if (A->objtype != CJ_MATRIX || A11->objtype != CJ_MATRIX || A12->objtype != CJ_MATRIX
-      || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) 
+      || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) { 
     cj_Object_error("matrix_part_2x2", "This is not a matrix.");
-  a   = A->matrix;
-  a11 = A11->matrix;
-  a12 = A12->matrix;
-  a21 = A21->matrix;
-  a22 = A22->matrix;
+  }
+  cj_Matrix *a   = A->matrix;
+  cj_Matrix *a11 = A11->matrix;
+  cj_Matrix *a12 = A12->matrix;
+  cj_Matrix *a21 = A21->matrix;
+  cj_Matrix *a22 = A22->matrix;
 
   if (mb > a->m) mb = a->m;
   if (nb > a->n) nb = a->n;
@@ -402,32 +398,32 @@ void cj_Matrix_part_2x2 (cj_Object *A, cj_Object *A11, cj_Object *A12,
   a22->offn = a->offn + nb;
   a22->base = a->base;
 }
-void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
-    cj_Object *A1,
-    cj_Object *AB, cj_Object *A2,
-    int mb,        cj_Side side) {
-  cj_Matrix *at, *a0, *a1, *ab, *a2;
 
+void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
+                                                 cj_Object *A1,
+                                  cj_Object *AB, cj_Object *A2,
+                                                 int mb, cj_Side side) {
   if (AT->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX
-      || AB->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+      || AB->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) { 
     cj_Object_error("matrix_repart_2x1_3x1", "This is not a matrix.");
-  at = AT->matrix;
-  a0 = A0->matrix;
-  a1 = A1->matrix;
-  ab = AB->matrix;
-  a2 = A2->matrix;
+  }
+  cj_Matrix *at = AT->matrix;
+  cj_Matrix *a0 = A0->matrix;
+  cj_Matrix *a1 = A1->matrix;
+  cj_Matrix *ab = AB->matrix;
+  cj_Matrix *a2 = A2->matrix;
 
   if (side == CJ_TOP) {
     cj_Matrix_part_2x1(AT, A0, A1, mb, CJ_BOTTOM);
-    a2->m = ab->m;
-    a2->n = ab->n;
+    a2->m    = ab->m;
+    a2->n    = ab->n;
     a2->offm = ab->offm;
     a2->offn = ab->offn;
     a2->base = ab->base;
   }
   else {
-    a0->m = at->m;
-    a0->n = at->n;
+    a0->m    = at->m;
+    a0->n    = at->n;
     a0->offm = at->offm;
     a0->offn = at->offn;
     a0->base = at->base;
@@ -436,29 +432,27 @@ void cj_Matrix_repart_2x1_to_3x1 (cj_Object *AT, cj_Object *A0,
 }
 
 void cj_Matrix_repart_1x2_to_1x3 (cj_Object *AL,                cj_Object *AR,
-    cj_Object *A0, cj_Object *A1, cj_Object *A2,
-    int nb,        cj_Side side) {
-  cj_Matrix *al, *ar, *a0, *a1, *a2;
+                                  cj_Object *A0, cj_Object *A1, cj_Object *A2,
+                                  int nb,        cj_Side side) {
   if (AL->objtype != CJ_MATRIX || AR->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX
-      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) {
     cj_Object_error("matrix_repart_1x2_1x3", "This is not a matrix.");
-  al = AL->matrix;
-  ar = AR->matrix;
-  a0 = A0->matrix;
-  a1 = A1->matrix;
-  a2 = A2->matrix;
+  }
+  cj_Matrix *al, *ar, *a0, *a1, *a2;
+  al = AL->matrix;                  ar = AR->matrix;
+  a0 = A0->matrix; a1 = A1->matrix; a2 = A2->matrix;
 
   if (side == CJ_LEFT) {
     cj_Matrix_part_1x2(AL, A0, A1, nb, CJ_RIGHT);
-    a2->m = ar->m;
-    a2->n = ar->n;
+    a2->m    = ar->m;
+    a2->n    = ar->n;
     a2->offm = ar->offm;
     a2->offn = ar->offn;
     a2->base = ar->base;
   }
   else {
-    a0->m = al->m;
-    a0->n = al->n;
+    a0->m    = al->m;
+    a0->n    = al->n;
     a0->offm = al->offm;
     a0->offn = al->offn;
     a0->base = al->base;
@@ -467,9 +461,9 @@ void cj_Matrix_repart_1x2_to_1x3 (cj_Object *AL,                cj_Object *AR,
 }
 
 void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,
-    cj_Object *A10, cj_Object *A11, cj_Object *A12,
-    cj_Object *ABL, cj_Object *ABR, cj_Object *A20, cj_Object *A21, cj_Object *A22,
-    int mb,         int nb,         cj_Quadrant quadrant) {
+                                                                  cj_Object *A10, cj_Object *A11, cj_Object *A12,
+                                  cj_Object *ABL, cj_Object *ABR, cj_Object *A20, cj_Object *A21, cj_Object *A22,
+                                                                  int mb,         int nb,         cj_Quadrant quadrant) {
   cj_Matrix *atl, *atr, *a00, *a01, *a02, *a10, *a11, *a12, *abl, *abr, *a20, *a21, *a22;
 
   if (ATL->objtype != CJ_MATRIX || ATR->objtype != CJ_MATRIX || 
@@ -477,8 +471,9 @@ void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00
       A10->objtype != CJ_MATRIX || A11->objtype != CJ_MATRIX || A12->objtype != CJ_MATRIX ||
       A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX ||
       ABL->objtype != CJ_MATRIX || ABR->objtype != CJ_MATRIX || 
-      A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) 
+      A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) {
     cj_Object_error("matrix_repart_2x2_3x3", "This is not a matrix.");
+  }
 
   atl = ATL->matrix; atr = ATR->matrix; a00 = A00->matrix; a01 = A01->matrix; a02 = A02->matrix;
   a10 = A10->matrix; a11 = A11->matrix; a12 = A12->matrix;
@@ -486,10 +481,10 @@ void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00
 
   if (quadrant == CJ_BR) {
     cj_Matrix_part_2x2(ABR, A11, A12,
-        A21, A22, mb, nb, CJ_TL);
+                            A21, A22, mb, nb, CJ_TL);
     cj_Matrix_part_1x2(ATR, A01, A02, nb    , CJ_LEFT);
     cj_Matrix_part_2x1(ABL, A10,
-        A20,      mb,     CJ_TOP);
+                            A20,      mb,     CJ_TOP);
     a00->m    = atl->m;
     a00->n    = atl->n;
     a00->offm = atl->offm;
@@ -498,10 +493,10 @@ void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00
   }
   else if (quadrant == CJ_BL) {
     cj_Matrix_part_2x2(ABL, A10, A11,
-        A20, A21, mb, nb, CJ_TR);
+                            A20, A21, mb, nb, CJ_TR);
     cj_Matrix_part_1x2(ATL, A00, A01, nb    , CJ_RIGHT);
     cj_Matrix_part_2x1(ABR, A12,
-        A22,      mb,     CJ_TOP);
+                            A22,      mb,     CJ_TOP);
     a02->m    = atr->m;
     a02->n    = atr->n;
     a02->offm = atr->offm;
@@ -510,10 +505,10 @@ void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00
   }
   else if (quadrant == CJ_TL) {
     cj_Matrix_part_2x2(ATL, A00, A01,
-        A10, A11, mb, nb, CJ_BR);
+                            A10, A11, mb, nb, CJ_BR);
     cj_Matrix_part_1x2(ABL, A20, A21, nb    , CJ_RIGHT);
     cj_Matrix_part_2x1(ATR, A02,
-        A12,      mb,     CJ_BOTTOM);
+                            A12,      mb,     CJ_BOTTOM);
     a22->m    = abr->m;
     a22->n    = abr->n;
     a22->offm = abr->offm;
@@ -522,30 +517,30 @@ void cj_Matrix_repart_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00
   }
   else if (quadrant == CJ_TR) {
     cj_Matrix_part_2x2(ATR, A01, A02,
-        A11, A12, mb, nb, CJ_BL);
+                            A11, A12, mb, nb, CJ_BL);
     cj_Matrix_part_1x2(ABR, A21, A22, nb    , CJ_LEFT);
     cj_Matrix_part_2x1(ATL, A00,
-        A10,      mb,     CJ_BOTTOM);
+                            A10,      mb,     CJ_BOTTOM);
     a20->m    = abl->m;
     a20->n    = abl->n;
     a20->offm = abl->offm;
     a20->offn = abl->offn;
     a20->base = abl->base;
   }
-
 }
 
 void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,
-    cj_Object *A1,
-    cj_Object *AB, cj_Object *A2,
-    cj_Side side) {
+                                                    cj_Object *A1,
+                                     cj_Object *AB, cj_Object *A2,
+                                                    cj_Side side) {
+  if (AT->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX
+      || AB->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) { 
+    cj_Object_error("matrix_repart_2x1_3x1", "This is not a matrix.");
+  }
   cj_Matrix *at, *a0, *a1, *ab, *a2;
 
-  if (AT->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX || A1->objtype != CJ_MATRIX
-      || AB->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
-    cj_Object_error("matrix_repart_2x1_3x1", "This is not a matrix.");
   at = AT->matrix; a0 = A0->matrix;
-  a1 = A1->matrix;
+                   a1 = A1->matrix;
   ab = AB->matrix; a2 = A2->matrix;
 
   if (side == CJ_TOP) {
@@ -577,17 +572,16 @@ void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,
 }
 
 void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR,
-    cj_Object *A0, cj_Object *A1, cj_Object *A2,
-    cj_Side side) {
-  cj_Matrix *al, *ar, *a0, *a1, *a2;
+                                     cj_Object *A0, cj_Object *A1, cj_Object *A2,
+                                     cj_Side side) {
   if (AL->objtype != CJ_MATRIX || AR->objtype != CJ_MATRIX || A0->objtype != CJ_MATRIX
-      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) 
+      || A1->objtype != CJ_MATRIX || A2->objtype != CJ_MATRIX) { 
     cj_Object_error("matrix_repart_1x2_1x3", "This is not a matrix.");
-  al = AL->matrix;
-  ar = AR->matrix;
-  a0 = A0->matrix;
-  a1 = A1->matrix;
-  a2 = A2->matrix;
+  }
+
+  cj_Matrix *al, *ar, *a0, *a1, *a2;
+  al = AL->matrix;                  ar = AR->matrix;
+  a0 = A0->matrix; a1 = A1->matrix; a2 = A2->matrix;
 
   if (side == CJ_LEFT) {
     al->m    = a0->m;
@@ -618,21 +612,21 @@ void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR
 }
 
 void cj_Matrix_cont_with_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,
-    cj_Object *A10, cj_Object *A11, cj_Object *A12,
-    cj_Object *ABL, cj_Object *ABR, cj_Object *A20, cj_Object *A21, cj_Object *A22,
-    cj_Quadrant quadrant) {
-  cj_Matrix *atl, *atr, *a00, *a01, *a02, *a10, *a11, *a12, *abl, *abr, *a20, *a21, *a22;
-
+                                                                     cj_Object *A10, cj_Object *A11, cj_Object *A12,
+                                     cj_Object *ABL, cj_Object *ABR, cj_Object *A20, cj_Object *A21, cj_Object *A22,
+                                                                     cj_Quadrant quadrant) {
   if (ATL->objtype != CJ_MATRIX || ATR->objtype != CJ_MATRIX || 
       A00->objtype != CJ_MATRIX || A01->objtype != CJ_MATRIX || A02->objtype != CJ_MATRIX ||
       A10->objtype != CJ_MATRIX || A11->objtype != CJ_MATRIX || A12->objtype != CJ_MATRIX ||
       A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX ||
       ABL->objtype != CJ_MATRIX || ABR->objtype != CJ_MATRIX || 
-      A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) 
+      A20->objtype != CJ_MATRIX || A21->objtype != CJ_MATRIX || A22->objtype != CJ_MATRIX) {
     cj_Object_error("matrix_repart_2x2_3x3", "This is not a matrix.");
+  }
 
+  cj_Matrix *atl, *atr, *a00, *a01, *a02, *a10, *a11, *a12, *abl, *abr, *a20, *a21, *a22;
   atl = ATL->matrix; atr = ATR->matrix; a00 = A00->matrix; a01 = A01->matrix; a02 = A02->matrix;
-  a10 = A10->matrix; a11 = A11->matrix; a12 = A12->matrix;
+                                        a10 = A10->matrix; a11 = A11->matrix; a12 = A12->matrix;
   abl = ABL->matrix; abr = ABR->matrix; a20 = A20->matrix; a21 = A21->matrix; a22 = A22->matrix;
 
   if (quadrant == CJ_TL) {
@@ -846,8 +840,8 @@ void cj_Object_acquire (cj_Object *object) {
 
         view->offm = i*BLOCK_SIZE;
         view->offn = j*BLOCK_SIZE;
-        view->m = min(BLOCK_SIZE, matrix->m - i*BLOCK_SIZE);
-        view->n = min(BLOCK_SIZE, matrix->n - j*BLOCK_SIZE);
+        view->m    = min(BLOCK_SIZE, matrix->m - i*BLOCK_SIZE);
+        view->n    = min(BLOCK_SIZE, matrix->n - j*BLOCK_SIZE);
 
         //fprintf(stderr, "offm : %d, offn : %d\n", view->offm, view->offn);
 

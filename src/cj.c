@@ -314,7 +314,7 @@ void cj_Worker_prefetch (cj_Worker *worker) {
           char *ptr_h;
 
           cj_Object *dist_dev = cj_Object_new(CJ_DISTRIBUTION);
-          fprintf(stderr, "Cache prefetch. device = %d\n", cj.device[worker->device_id]->id);
+          fprintf(stderr, GREEN "Cache prefetch. device = %d\n" NONE, cj.device[worker->device_id]->id);
           cache_id = cj_Cache_fetch(cj.device[worker->device_id], now);
           cj_Distribution_set(dist_dev, cj.device[worker->device_id], worker->device_id, cache_id);
           cj_Dqueue_push_head(dist, dist_dev);

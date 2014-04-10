@@ -147,6 +147,7 @@ struct worker_s {
 struct schedule_s {
   struct object_s *ready_queue[MAX_WORKER];
   float time_remaining[MAX_WORKER];
+  int task_remaining;
   struct lock_s run_lock[MAX_WORKER];
   struct lock_s ready_queue_lock[MAX_WORKER];
   struct lock_s war_lock;
@@ -188,6 +189,7 @@ struct device_s {
 };
 
 struct graph_s {
+  int nvisit;
   struct object_s *vertex;
   struct object_s *edge;
 };

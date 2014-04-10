@@ -93,7 +93,7 @@ void cj_Autotune_mkl () {
     nb = (i + 1)*BLOCK_SIZE;
     t = clock();
     sgemm_("N", "N", &nb, &nb, &nb, &fone, A, &ld, B, &ld, &fone, C, &ld);
-    time_ms = ((float) (t - clock()))/1000;
+    time_ms = ((float) (clock() - t))/1000;
     fprintf(stderr, "  Sgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
     autotune->mkl_sgemm[i] = time_ms;
   }
@@ -102,12 +102,12 @@ void cj_Autotune_mkl () {
     nb = (i + 1)*BLOCK_SIZE;
     t = clock();
     dgemm_("N", "N", &nb, &nb, &nb, &done, dA, &ld, dB, &ld, &done, dC, &ld);
-    time_ms = ((float) (t - clock()))/1000;
+    time_ms = ((float) (clock() - t))/1000;
     fprintf(stderr, "  Dgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
     autotune->mkl_dgemm[i] = time_ms;
   }
 
-  free(A); free(B); free(C);
+  free(A);  free(B);  free(C);
   free(dA); free(dB); free(dC);
 }
 

@@ -27,7 +27,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
 
   cj_Object *A, *B, *C;
   cj_Matrix *a, *b, *c;
-  A = task->arg->dqueue->head;
+   A = task->arg->dqueue->head;
   B = A->next;
   C = B->next;
   a = A->matrix;
@@ -63,7 +63,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
       double *a_buff = (double *) cache->dev_ptr[now_a->distribution->cache_id];
       double *b_buff = (double *) cache->dev_ptr[now_b->distribution->cache_id];
       double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
-      fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
+      //fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
       //fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
       status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
           b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
