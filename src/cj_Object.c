@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-/*
-#include "cj_Device.h"
-#include "cj_Object.h"
-#include "cj.h"
-*/
+
 #include <CJ.h>
 #include "cj_Macro.h"
 #include "cj.h"
@@ -20,8 +16,9 @@ void cj_Object_error (const char *func_name, char* msg_text) {
 }
 
 void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {
-  if (object->objtype != CJ_DISTRIBUTION || target->objtype != CJ_DISTRIBUTION) 
+  if (object->objtype != CJ_DISTRIBUTION || target->objtype != CJ_DISTRIBUTION) { 
     cj_Object_error("Distribution_set", "The object and target are not a distribution.");
+  }
   cj_Distribution *dist_tar;
   cj_Distribution *dist_obj;
   dist_tar = target->distribution;
@@ -33,10 +30,10 @@ void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {
 }
 
 void cj_Distribution_set (cj_Object *object, cj_Device *device, int device_id, int cache_id) {
-  if (object->objtype != CJ_DISTRIBUTION) 
+  if (object->objtype != CJ_DISTRIBUTION) {
     cj_Object_error("Distribution_set", "The object is not a distribution.");
+  }
   cj_Distribution *dist = object->distribution;
-  fprintf(stderr, "In dist_set: %s\n", device->name);
   dist->device    = device;
   dist->device_id = device_id;
   dist->cache_id  = cache_id; 
@@ -54,14 +51,18 @@ cj_Distribution *cj_Distribution_new () {
 }
 
 int cj_Dqueue_get_size (cj_Object *object) {
-  if (object->objtype == CJ_DQUEUE) return (object->dqueue->size);
-  else cj_Object_error("Dqueue_get_size", "The object is not a dqueue.");
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_get_size", "The object is not a dqueue.");
+    return (object->dqueue->size);
+  }
+  return (object->dqueue->size);
 }
 
 cj_Dqueue *cj_Dqueue_new () {
-  cj_Dqueue *dqueue;
-  dqueue = (cj_Dqueue*) malloc(sizeof(cj_Dqueue));
-  if (!dqueue) cj_Object_error("Dqueue_new", "memory allocation failed.");
+  cj_Dqueue *dqueue = (cj_Dqueue*) malloc(sizeof(cj_Dqueue));
+  if (!dqueue) {
+    cj_Object_error("Dqueue_new", "memory allocation failed.");
+  }
   dqueue->head = NULL;
   dqueue->tail = NULL;	
   dqueue->size = 0;
@@ -69,117 +70,117 @@ cj_Dqueue *cj_Dqueue_new () {
 }
 
 cj_Object *cj_Dqueue_pop_head (cj_Object *object) {
-  cj_Dqueue *dqueue;
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_pop_head", "The object is not a dqueue.");	
+  }
+  cj_Dqueue *dqueue = object->dqueue;
   cj_Object *head = NULL;
 
-  if (object->objtype == CJ_DQUEUE) {
-    dqueue = object->dqueue;
-    if (dqueue->size > 1) {
-      head = dqueue->head;
-      dqueue->head = head->next;
-      dqueue->head->prev = NULL;
-      dqueue->size --;
-    }
-    else if (dqueue->size == 1) {
-      head = dqueue->head;
-      dqueue->head = NULL;
-      dqueue->tail = NULL;
-      dqueue->size --;
-    }
-    if (head) {
-      head->prev = NULL;
-      head->next = NULL;
-    }
-    return head;
+  if (dqueue->size > 1) {
+    head = dqueue->head;
+    dqueue->head = head->next;
+    dqueue->head->prev = NULL;
+    dqueue->size --;
   }
-  else cj_Object_error("Dqueue_pop_head", "The object is not a dqueue.");	
+  else if (dqueue->size == 1) {
+    head = dqueue->head;
+    dqueue->head = NULL;
+    dqueue->tail = NULL;
+    dqueue->size --;
+  }
+  if (head) {
+    head->prev = NULL;
+    head->next = NULL;
+  }
+  return head;
 }
 
 cj_Object *cj_Dqueue_pop_tail (cj_Object *object) {
-  cj_Dqueue *dqueue;
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_pop_tail", "The object is not a dqueue.");	
+  }
+  cj_Dqueue *dqueue = object->dqueue;
   cj_Object *tail = NULL;
 
-  if (object->objtype == CJ_DQUEUE) {
-    dqueue = object->dqueue;
-    if (dqueue->size > 1) {
-      tail = dqueue->tail;
-      dqueue->tail = tail->prev;
-      dqueue->tail->next = NULL;
-      dqueue->size --;
-    }
-    else if (dqueue->size == 1) {
-      tail = dqueue->tail;
-      dqueue->head = NULL;
-      dqueue->tail = NULL;
-      dqueue->size --;
-    }
-    if (tail) {
-      tail->prev = NULL;
-      tail->next = NULL;
-    }
-    return tail;
+  if (dqueue->size > 1) {
+    tail = dqueue->tail;
+    dqueue->tail = tail->prev;
+    dqueue->tail->next = NULL;
+    dqueue->size --;
   }
-  else cj_Object_error("Dqueue_pop_tail", "The object is not a dqueue.");	
+  else if (dqueue->size == 1) {
+    tail = dqueue->tail;
+    dqueue->head = NULL;
+    dqueue->tail = NULL;
+    dqueue->size --;
+  }
+  if (tail) {
+    tail->prev = NULL;
+    tail->next = NULL;
+  }
+  return tail;
 }
 
 void cj_Dqueue_push_head (cj_Object *object, cj_Object *target) {
-  cj_Dqueue *dqueue;
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_push_head", "The object is not a dqueue.");
+  }
+  if (!target) {
+    cj_Object_error("Dqueue_push_head", "Target is empty.");
+  }
+  cj_Dqueue *dqueue = object->dqueue;
   cj_Object *head;
 
-  if (target) {
-    target->prev = NULL;
-    target->next = NULL;
-  }
+  target->prev = NULL;
+  target->next = NULL;
 
-  if (object->objtype == CJ_DQUEUE) {
-    dqueue = object->dqueue;
-    if (dqueue->size == 0) {
-      dqueue->head = target;
-      dqueue->tail = target;
-    }
-    else {
-      head = dqueue->head;
-      dqueue->head = target;
-      target->prev = NULL;
-      target->next = head;
-      head->prev = target; 
-    }
-    dqueue->size ++;
+  if (dqueue->size == 0) {
+    dqueue->head = target;
+    dqueue->tail = target;
   }
-  else cj_Object_error("Dqueue_push_head", "The object is not a dqueue.");
+  else {
+    head = dqueue->head;
+    dqueue->head = target;
+    target->prev = NULL;
+    target->next = head;
+    head->prev = target; 
+  }
+  dqueue->size ++;
 }
 
 void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {
-  cj_Dqueue *dqueue;
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_push_tail", "The object is not a dqueue.");
+  }
+  if (!target) {
+    cj_Object_error("Dqueue_push_tail", "Target is empty.");
+  }
+  cj_Dqueue *dqueue = object->dqueue;
   cj_Object *tail;
 
-  if (target) {
-    target->prev = NULL;
-    target->next = NULL;
-  }
-  else cj_Object_error("Dqueue_push_tail", "Target is empty.");
+  target->prev = NULL;
+  target->next = NULL;
 
-  if (object->objtype == CJ_DQUEUE) {
-    dqueue = object->dqueue;
-    if (dqueue->size == 0) {
-      dqueue->head = target;
-      dqueue->tail = target;
-    }
-    else {
-      tail = dqueue->tail;
-      dqueue->tail = target;
-      target->prev = tail;
-      target->next = NULL;
-      tail->next = target; 
-    }
-    dqueue->size ++;
+  if (dqueue->size == 0) {
+    dqueue->head = target;
+    dqueue->tail = target;
   }
-  else cj_Object_error("Dqueue_push_tail", "The object is not a dqueue.");
+  else {
+    tail = dqueue->tail;
+    dqueue->tail = target;
+    target->prev = tail;
+    target->next = NULL;
+    tail->next = target; 
+  }
+  dqueue->size ++;
 }
 
 void cj_Dqueue_clear(cj_Object *object) {
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_clear", "The object is not a dqueue.");
+  }
   cj_Object *tmp;
-  if (object->objtype != CJ_DQUEUE) cj_Object_error("Dqueue_clear", "The object is not a dqueue.");
+
   while (cj_Dqueue_get_size(object) != 0) {
     tmp = cj_Dqueue_pop_tail(object);
     free(tmp);
@@ -188,65 +189,77 @@ void cj_Dqueue_clear(cj_Object *object) {
 
 void cj_Matrix_duplicate (cj_Object *object, cj_Object *target) {
   /* This routine only duplicate the basic info. No dynamic memory allocation. */
-  if (object->objtype != CJ_MATRIX || target->objtype != CJ_MATRIX)
+  if (object->objtype != CJ_MATRIX || target->objtype != CJ_MATRIX) {
     cj_Object_error("Matrix_duplicate", "The object or target is not a matrix.");
-   cj_Matrix *base, *copy;
-   base = object->matrix;
-   copy = target->matrix;
+  }
+  cj_Matrix *base = object->matrix;
+  cj_Matrix *copy = target->matrix;
 
-   copy->eletype = base->eletype;
-   copy->elelen  = base->elelen;
-   copy->m       = base->m;
-   copy->n       = base->n;
-   copy->mb      = base->mb;
-   copy->nb      = base->nb;
-   copy->offm    = base->offm;
-   copy->offn    = base->offn;
-   copy->base    = base->base;
-   //copy->buff    = base->buff;
+  copy->eletype = base->eletype;
+  copy->elelen  = base->elelen;
+  copy->m       = base->m;
+  copy->n       = base->n;
+  copy->mb      = base->mb;
+  copy->nb      = base->nb;
+  copy->offm    = base->offm;
+  copy->offn    = base->offn;
+  copy->base    = base->base;
+  //copy->buff    = base->buff;
 }
 
 void cj_Matrix_set (cj_Object *object, int m, int n) {
+  if (object->objtype != CJ_MATRIX) {
+    cj_Object_error("Matrix_set", "The object is not a matrix.");
+  }
+  if (m <= 0 && n <= 0) {
+    cj_Object_error("Matrix_set", "m and n should at least be 1.");
+  }
+  cj_Matrix *matrix = object->matrix;
   int i, j;
-  cj_Matrix *matrix;
-  size_t elelen;
+  size_t elelen = matrix->elelen;
 
-  /* Check inputs' validities. */
-  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
-  if (m <= 0 && n <= 0) cj_Object_error("Matrix_new", "m and n should at least be 1.");
+  matrix->m     = m;
+  matrix->n     = n;
+  matrix->mb    = (m - 1)/BLOCK_SIZE + 1;
+  matrix->nb    = (n - 1)/BLOCK_SIZE + 1;
+  matrix->offm  = 0;
+  matrix->offn  = 0;
+  matrix->base  = object->matrix;
+#ifdef CJ_HAVE_CUDA
+  fprintf(stderr, "cudaMallocHost()\n");
+  cudaMallocHost((void**)&(matrix->buff), m*n*elelen);
+#else
+  matrix->buff  = (char *) malloc(m*n*elelen);
+#endif
 
-  matrix = object->matrix;
-  matrix->m = m;
-  matrix->n = n;
-  matrix->mb = (m - 1)/BLOCK_SIZE + 1;
-  matrix->nb = (n - 1)/BLOCK_SIZE + 1;
-  matrix->offm = 0;
-  matrix->offn = 0;
-
-  elelen = matrix->elelen;
-
+  if (!matrix->buff) {
+    cj_Object_error("Matrix_set", "memory allocation failed.");
+  }
   matrix->rset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
-  if (!matrix->rset) cj_Object_error("Matrix_new", "memory allocation failed.");
   matrix->wset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
-  if (!matrix->wset) cj_Object_error("Matrix_new", "memory allocation failed.");
   matrix->dist = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
-  if (!matrix->dist) cj_Object_error("Matrix_new", "memory allocation failed.");
+
+  if (!matrix->rset || !matrix->wset || !matrix->dist) {
+    cj_Object_error("Matrix_set", "memory allocation failed.");
+  }
 
   for (i = 0; i < matrix->mb; i++) {
     matrix->rset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
-    if (!matrix->rset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
     matrix->wset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
-    if (!matrix->wset[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
     matrix->dist[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
-    if (!matrix->dist[i]) cj_Object_error("Matrix_new", "memory allocation failed.");
+
+    if (!matrix->rset[i] || !matrix->wset[i] || !matrix->dist[i]) {
+      cj_Object_error("Matrix_set", "memory allocation failed.");
+    }
 
     for (j = 0; j < matrix->nb; j++) {
       matrix->rset[i][j] = cj_Object_new(CJ_DQUEUE);
-      if (!matrix->rset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
       matrix->wset[i][j] = cj_Object_new(CJ_DQUEUE);
-      if (!matrix->wset[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
       matrix->dist[i][j] = cj_Object_new(CJ_DQUEUE);
-      if (!matrix->dist[i][j]) cj_Object_error("Matrix_new", "memory allocation failed.");
+
+      if (!matrix->rset[i][j] || !matrix->wset[i][j] || !matrix->dist[i][j]) {
+        cj_Object_error("Matrix_set", "memory allocation failed.");
+      }
 
       /* Setup the initial distribution. (only on CPU) */
       cj_Object *distribution = cj_Object_new(CJ_DISTRIBUTION);
@@ -270,13 +283,6 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
       cj_Dqueue_push_tail(matrix->dist[i][j], distribution);
     }
   }
-
-  /* Allocate buffer. */
-  matrix->buff = (char *) malloc(m*n*elelen);
-  //cudaMallocHost((void**)&matrix->buff, m*n*elelen);
-  if (!matrix->buff) cj_Object_error("Matrix_new", "memory allocation failed.");
-
-  matrix->base = object->matrix;
 }
 
 cj_Matrix *cj_Matrix_new () {

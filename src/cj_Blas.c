@@ -64,7 +64,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
       double *b_buff = (double *) cache->dev_ptr[now_b->distribution->cache_id];
       double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
       fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
-      fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
+      //fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
       status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
           b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
     }
@@ -406,7 +406,7 @@ void cj_Syrk_ln_blk_var3 (cj_Object *A, cj_Object *C) {
                                               A1,
                                 AB,           A2,      b,  CJ_BOTTOM);
 
-    cj_Matrix_repart_2x1_to_3x1(CTL, /**/ CTR,       C00, C01, /**/ C02,
+    cj_Matrix_repart_2x2_to_3x3(CTL, /**/ CTR,       C00, C01, /**/ C02,
                                                      C10, C11, /**/ C12,
                             /* ************** */  /* ****************** */
                                 CBL, /**/ CBR,       C20, C21, /**/ C22,

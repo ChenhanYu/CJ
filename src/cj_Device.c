@@ -24,7 +24,7 @@ void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
   char *ptr_h;
   if (device->devtype == CJ_DEV_CUDA) {    
     if (target->objtype == CJ_MATRIX) {
-      fprintf(stderr, "Cache_read_in (CJ_MATRIX) : \n");
+      //fprintf(stderr, "Cache_read_in (CJ_MATRIX) : \n");
       cj_Matrix *base = target->matrix->base;
       cj_Matrix *matrix = target->matrix;
 
@@ -36,8 +36,6 @@ void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
     }
   }
   cache->hos_ptr[line_id] = ptr_h;
-  /* Update the distribution. */
-
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
@@ -56,7 +54,25 @@ void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {
     else {
     }
   }
+  cache->status[line_id] = CJ_CACHE_CLEAN;
+}
 
+
+void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *target) {
+  cj_Cache *cache = &device->cache;
+  uintptr_t ptr_d = cache->dev_ptr[line_id];
+  char *ptr_h = cache->hos_ptr[line_id];
+   
+  if (device->devtype == CJ_DEV_CUDA) {
+    if (target->objtype == CJ_MATRIX) {
+      cj_Matrix *base = target->matrix->base;
+      cj_Matrix *matrix = target->matrix;
+      cj_Device_async_memcpy2d_d2h(ptr_h, base->m*base->elelen, ptr_d, BLOCK_SIZE*base->elelen,
+          matrix->m*matrix->elelen, matrix->n, device);
+    }
+    else {
+    }
+  }
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
@@ -70,8 +86,7 @@ int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
 
   if (device->devtype == CJ_DEV_CUDA) {
     if (cache->status[line_id] == CJ_CACHE_DIRTY) {
-      cj_Cache_write_back(device, line_id, target);
-      /* TODO : update distribution here. */ 
+      cj_Cache_async_write_back(device, line_id, target);
     }
     cj_Cache_read_in(device, line_id, target);
   }
@@ -81,7 +96,15 @@ int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
 void cj_Cache_sync (cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
-    cudaStreamSynchronize(device->stream);
+    cudaStreamSynchronize(device->stream[0]);
+#endif
+  }
+}
+
+void cj_Device_sync (cj_Device *device) {
+  if (device->devtype == CJ_DEV_CUDA) {
+#ifdef CJ_HAVE_CUDA
+    cudaStreamSynchronize(device->stream[1]);
 #endif
   }
 }
@@ -90,17 +113,20 @@ uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {
   char *ptr;
   if (devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
-    cudaMalloc((void**)&ptr, len);
+    cudaError_t error; 
+    error = cudaMalloc((void**)&ptr, len);
+    if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
-  }
-  
+  } 
   return (uintptr_t) ptr;
 }
 
 void cj_Device_free (uintptr_t ptr, cj_devType devtype) {
   if (devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
-    cudaFree((char *) ptr);
+    cudaError_t error; 
+    error = cudaFree((char *) ptr);
+    if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
   }
 }
@@ -111,7 +137,7 @@ void cj_Device_memcpy_d2h (char *ptr_h, uintptr_t ptr_d, size_t len, cj_Device *
     cudaError_t error; 
     cudaSetDevice(device->id);
     error = cudaMemcpy(ptr_h, (char *) ptr_d, len, cudaMemcpyDeviceToHost);
-    //error = cudaMemcpyAsync(ptr_h, (char *) ptr_d, len, cudaMemcpyDeviceToHost, device->stream);
+    //error = cudaMemcpyAsync(ptr_h, (char *) ptr_d, len, cudaMemcpyDeviceToHost, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
   }
@@ -123,9 +149,23 @@ void cj_Device_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_
 #ifdef CJ_HAVE_CUDA
     cudaError_t error; 
     cudaSetDevice(device->id);
-    fprintf(stderr, "memcpy2d_d2h : %d, %d\n", (int) mbytes, (int) n);
+    fprintf(stderr, "memcpy2d_d2h : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
+        (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
     error = cudaMemcpy2D(ptr_h, pitch_h, (char *) ptr_d, pitch_d, mbytes, n, cudaMemcpyDeviceToHost);
-    //error = cudaMemcpy2DAsync(ptr_h, pitch_h, (char *) ptr_d, pitch_d, mbytes, n, cudaMemcpyDeviceToHost, device->stream);
+    if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
+#endif
+  }
+}
+
+void cj_Device_async_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_t pitch_d, 
+    size_t mbytes, size_t n, cj_Device *device) {
+  if (device->devtype == CJ_DEV_CUDA) {
+#ifdef CJ_HAVE_CUDA
+    cudaError_t error; 
+    cudaSetDevice(device->id);
+    fprintf(stderr, "memcpy2d_d2h : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
+        (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
+    error = cudaMemcpy2DAsync(ptr_h, pitch_h, (char *) ptr_d, pitch_d, mbytes, n, cudaMemcpyDeviceToHost, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
   }
@@ -136,8 +176,8 @@ void cj_Device_memcpy_h2d (uintptr_t ptr_d, char *ptr_h, size_t len, cj_Device *
 #ifdef CJ_HAVE_CUDA
     cudaError_t error; 
     cudaSetDevice(device->id);
-    error = cudaMemcpy((char *) ptr_d, ptr_h, len, cudaMemcpyHostToDevice);
-    //error = cudaMemcpyAsync((char *) ptr_d, ptr_h, len, cudaMemcpyHostToDevice, device->stream);
+    //error = cudaMemcpy((char *) ptr_d, ptr_h, len, cudaMemcpyHostToDevice);
+    error = cudaMemcpyAsync((char *) ptr_d, ptr_h, len, cudaMemcpyHostToDevice, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
   }
@@ -151,8 +191,8 @@ void cj_Device_memcpy2d_h2d (uintptr_t ptr_d, size_t pitch_d, char *ptr_h, size_
     cudaSetDevice(device->id);
     fprintf(stderr, "memcpy2d_h2d : pitch_d:%d, pitch_h:%d, mbytes:%d, n:%d\n", 
         (int) pitch_d, (int) pitch_h, (int) mbytes, (int) n);
-    error = cudaMemcpy2D((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice);
-    //error = cudaMemcpy2DAsync((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice, device->stream);
+    //error = cudaMemcpy2D((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice);
+    error = cudaMemcpy2DAsync((char *) ptr_d, pitch_d, ptr_h, pitch_h, mbytes, n, cudaMemcpyHostToDevice, device->stream[0]);
     if (error != cudaSuccess) fprintf(stderr, "%s\n", cudaGetErrorString(error));
 #endif
   }
@@ -181,10 +221,12 @@ cj_Device *cj_Device_new(cj_devType devtype, int device_id) {
     cudaError_t error;
 	  struct cudaDeviceProp prop;
     cudaSetDevice(device_id);
+    cudaDeviceReset();
     error = cudaGetDeviceProperties(&prop, gpu_counter);
-	  device->name = prop.name;
-    cudaStreamCreate(&(device->stream));
+    cudaStreamCreate(&(device->stream[0]));
+    cudaStreamCreate(&(device->stream[1]));
     cublasCreate(&(device->handle));
+    cublasSetStream(device->handle, device->stream[1]);
 	  gpu_counter ++;
 
 	  /* Setup device cache */
@@ -197,10 +239,8 @@ cj_Device *cj_Device_new(cj_devType devtype, int device_id) {
       device->cache.hos_ptr[i] = NULL;
     }
 
-    //cj_Device_report(device);
     fprintf(stderr, "  Name         : %s (%d.%d)\n", prop.name, prop.major, prop.minor);
     fprintf(stderr, "  Device Id    : %d \n", device_id);
-    //fprintf(stderr, "  Device Memory: %d Mbytes\n", (int) ((prop.totalGlobalMem/1024)/1024));
     fprintf(stderr, "  Device Memory: %d Mbytes\n", (unsigned int) (prop.totalGlobalMem/1024)/1024);
 #endif
   }

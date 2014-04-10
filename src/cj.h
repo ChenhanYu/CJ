@@ -49,4 +49,5 @@ void cj_Task_dependencies_update (cj_Object*);
 
 /* cj_Worker function prototypes */
 float cj_Worker_estimate_cost (cj_Task*, cj_Worker*);
+void cj_Worker_wait_prefetch (cj_Worker*);
 

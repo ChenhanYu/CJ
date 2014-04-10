@@ -7,8 +7,8 @@
 #endif
 
 #define AUTOTUNE_GRID 1
-#define BLOCK_SIZE 4
-#define CACHE_LINE 32
+#define BLOCK_SIZE 4096
+#define CACHE_LINE 16
 #define MAX_WORKER 8
 #define MAX_DEV 4
 #define MAX_GPU 4
@@ -141,12 +141,14 @@ struct worker_s {
   int device_id;
   pthread_t threadid;
   struct cj_s *cj_ptr;
+  struct object_s *write_back;
 };
 
 struct schedule_s {
   struct object_s *ready_queue[MAX_WORKER];
   float time_remaining[MAX_WORKER];
   struct lock_s run_lock[MAX_WORKER];
+  struct lock_s ready_queue_lock[MAX_WORKER];
   struct lock_s war_lock;
   struct lock_s pci_lock;
   struct lock_s gpu_lock;
@@ -180,7 +182,7 @@ struct device_s {
   int bindid;
   int bandwidth;
 #ifdef CJ_HAVE_CUDA
-  cudaStream_t stream;
+  cudaStream_t stream[2];
   cublasHandle_t handle;
 #endif
 };
