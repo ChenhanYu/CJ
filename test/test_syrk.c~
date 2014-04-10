@@ -31,7 +31,7 @@ int main () {
   //cj_Matrix_set(D, md, nd);
 
   /* C = A*B */
-  cj_Syrk_nn(A, C);
+  cj_Syrk_ln(A, C);
   //cj_Gemm_nn(C, B, D);
 
   cj_Term();

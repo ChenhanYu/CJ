@@ -65,6 +65,11 @@ cj_Gemm_nn_blk_var3	cj_Blas.c	/^void cj_Gemm_nn_blk_var3 (cj_Object *A, cj_Objec
 cj_Gemm_nn_blk_var5	cj_Blas.c	/^void cj_Gemm_nn_blk_var5 (cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
 cj_Gemm_nn_task	cj_Blas.c	/^void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {$/;"	f
 cj_Gemm_nn_task_function	cj_Blas.c	/^void cj_Gemm_nn_task_function (void *task_ptr) {$/;"	f
+cj_Gemm_nt_blk_var1	cj_Blas.c	/^void cj_Gemm_nt_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C)$/;"	f
+cj_Gemm_nt_blk_var3	cj_Blas.c	/^void cj_Gemm_nt_blk_var3 ( cj_Object *A, cj_Object *B, cj_Object *C)$/;"	f
+cj_Gemm_nt_blk_var5	cj_Blas.c	/^void cj_Gemm_nt_blk_var5(cj_Object *A, cj_Object *B, cj_Object *C)$/;"	f
+cj_Gemm_nt_task	cj_Blas.c	/^void cj_Gemm_nt_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *beta, cj_Object *C) {$/;"	f
+cj_Gemm_nt_task_function	cj_Blas.c	/^void cj_Gemm_nt_task_function (void *task_ptr) {$/;"	f
 cj_Gepp_nn_blk_var1	cj_Blas.c	/^void cj_Gepp_nn_blk_var1(cj_Object *A, cj_Object *B, cj_Object *C) {$/;"	f
 cj_Graph_edge_add	cj_Graph.c	/^void cj_Graph_edge_add (cj_Object *edge) {$/;"	f
 cj_Graph_error	cj_Graph.c	/^void cj_Graph_error (const char *func_name, char* msg_text) {$/;"	f
@@ -78,9 +83,9 @@ cj_Lock_acquire	cj.c	/^void cj_Lock_acquire (cj_Lock *lock) {$/;"	f
 cj_Lock_delete	cj.c	/^void cj_Lock_delete (cj_Lock *lock) {$/;"	f
 cj_Lock_new	cj.c	/^void cj_Lock_new (cj_Lock *lock) {$/;"	f
 cj_Lock_release	cj.c	/^void cj_Lock_release (cj_Lock *lock) {$/;"	f
-cj_Matrix_cont_with_1x3_to_1x2	cj_Object.c	/^void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR,$/;"	f
-cj_Matrix_cont_with_2x2_to_3x3	cj_Object.c	/^void cj_Matrix_cont_with_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,$/;"	f
+cj_Matrix_cont_with_1x3_to_1x2	cj_Object.c	/^void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL, cj_Object *AR,     cj_Object *A0, cj_Object *A1, cj_Object *A2,$/;"	f
 cj_Matrix_cont_with_3x1_to_2x1	cj_Object.c	/^void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object *AT, cj_Object *A0,$/;"	f
+cj_Matrix_cont_with_3x3_to_2x2	cj_Object.c	/^void cj_Matrix_cont_with_3x3_to_2x2 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,$/;"	f
 cj_Matrix_delete	cj_Object.c	/^void cj_Matrix_delete (cj_Matrix *matrix) {$/;"	f
 cj_Matrix_distribution_print	cj_Object.c	/^void cj_Matrix_distribution_print (cj_Object *object) {$/;"	f
 cj_Matrix_duplicate	cj_Object.c	/^void cj_Matrix_duplicate (cj_Object *object, cj_Object *target) {$/;"	f
@@ -103,7 +108,10 @@ cj_Queue_end	cj.c	/^void cj_Queue_end() {$/;"	f
 cj_Schedule_init	cj.c	/^void cj_Schedule_init() {$/;"	f
 cj_Syrk_ln	cj_Blas.c	/^void cj_Syrk_ln (cj_Object *A, cj_Object *C) {$/;"	f
 cj_Syrk_ln_blk_var1	cj_Blas.c	/^void cj_Syrk_ln_blk_var1 (cj_Object *A, cj_Object *C) {$/;"	f
+cj_Syrk_ln_blk_var2	cj_Blas.c	/^void cj_Syrk_ln_blk_var2 (cj_Object *A, cj_Object *C) {$/;"	f
 cj_Syrk_ln_blk_var5	cj_Blas.c	/^void cj_Syrk_ln_blk_var5 (cj_Object *A, cj_Object *C) {$/;"	f
+cj_Syrk_ln_task	cj_Blas.c	/^void cj_Syrk_ln_task(cj_Object *alpha, cj_Object *A, cj_Object *beta, cj_Object *C) {$/;"	f
+cj_Syrk_ln_task_function	cj_Blas.c	/^void cj_Syrk_ln_task_function (void *task_ptr) {$/;"	f
 cj_Task_dependencies_update	cj.c	/^void cj_Task_dependencies_update (cj_Object *target) {$/;"	f
 cj_Task_dependency_add	cj.c	/^void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {$/;"	f
 cj_Task_dependency_analysis	cj.c	/^void cj_Task_dependency_analysis (cj_Object *task) {$/;"	f
