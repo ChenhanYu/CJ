@@ -10,7 +10,6 @@
 int main () {
   cj_Object *A, *B, *C, *D;
   int ma = 16, na = 16, mb = na, nb = 16, mc = ma, nc = nb;
-  //int ma = 16, na = 16, mb = na, nb = 16, mc = ma, nc = nb;
   //int ma = 256, na = 256, mb = na, nb = 256, mc = ma, nc = nb;
   //int ma = 128, na = 128, mb = na, nb = 128, mc = ma, nc = nb;
   //int ma = 4096, na = 4096, mb = na, nb = 4096, mc = ma, nc = nb;
@@ -27,21 +26,13 @@ int main () {
   D = cj_Object_new(CJ_MATRIX);
  
   cj_Matrix_set(A, ma, na);
-  //cj_Matrix_set(B, mb, nb);
+  cj_Matrix_set(B, mb, nb);
   cj_Matrix_set(C, mc, nc);
-  //cj_Matrix_set(D, md, nd);
+  cj_Matrix_set(D, md, nd);
 
-
-  cj_Matrix_set_identity(A);
-  cj_Matrix_set_identity(C);
- 
   /* C = A*B */
-  cj_Syrk_ln(A, C);
+  cj_Gemm_nn(A, B, C);
   //cj_Gemm_nn(C, B, D);
-
-
-  sleep(1);
-  cj_Matrix_print(C);
 
   cj_Term();
 

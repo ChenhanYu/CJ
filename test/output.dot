@@ -1,5 +1,32 @@
 digraph CJ_GRAPH { 
   Gemm_nt0_A_1_0_B_0_0_C_1_0 -> Gemm_nt1_A_1_1_B_0_1_C_1_0;
-  Syrk_nn2_A_0_0_C_0_0 -> Syrk_nn3_A_0_1_C_0_0;
-  Syrk_nn4_A_1_0_C_1_1 -> Syrk_nn5_A_1_1_C_1_1;
+  Gemm_nt1_A_1_1_B_0_1_C_1_0 -> Gemm_nt2_A_1_2_B_0_2_C_1_0;
+  Gemm_nt2_A_1_2_B_0_2_C_1_0 -> Gemm_nt3_A_1_3_B_0_3_C_1_0;
+  Gemm_nt4_A_2_0_B_0_0_C_2_0 -> Gemm_nt5_A_2_1_B_0_1_C_2_0;
+  Gemm_nt5_A_2_1_B_0_1_C_2_0 -> Gemm_nt6_A_2_2_B_0_2_C_2_0;
+  Gemm_nt6_A_2_2_B_0_2_C_2_0 -> Gemm_nt7_A_2_3_B_0_3_C_2_0;
+  Gemm_nt8_A_3_0_B_0_0_C_3_0 -> Gemm_nt9_A_3_1_B_0_1_C_3_0;
+  Gemm_nt9_A_3_1_B_0_1_C_3_0 -> Gemm_nt10_A_3_2_B_0_2_C_3_0;
+  Gemm_nt10_A_3_2_B_0_2_C_3_0 -> Gemm_nt11_A_3_3_B_0_3_C_3_0;
+  Syrk_nn12_A_0_0_C_0_0 -> Syrk_nn13_A_0_1_C_0_0;
+  Syrk_nn13_A_0_1_C_0_0 -> Syrk_nn14_A_0_2_C_0_0;
+  Syrk_nn14_A_0_2_C_0_0 -> Syrk_nn15_A_0_3_C_0_0;
+  Gemm_nt16_A_2_0_B_1_0_C_2_1 -> Gemm_nt17_A_2_1_B_1_1_C_2_1;
+  Gemm_nt17_A_2_1_B_1_1_C_2_1 -> Gemm_nt18_A_2_2_B_1_2_C_2_1;
+  Gemm_nt18_A_2_2_B_1_2_C_2_1 -> Gemm_nt19_A_2_3_B_1_3_C_2_1;
+  Gemm_nt20_A_3_0_B_1_0_C_3_1 -> Gemm_nt21_A_3_1_B_1_1_C_3_1;
+  Gemm_nt21_A_3_1_B_1_1_C_3_1 -> Gemm_nt22_A_3_2_B_1_2_C_3_1;
+  Gemm_nt22_A_3_2_B_1_2_C_3_1 -> Gemm_nt23_A_3_3_B_1_3_C_3_1;
+  Syrk_nn24_A_1_0_C_1_1 -> Syrk_nn25_A_1_1_C_1_1;
+  Syrk_nn25_A_1_1_C_1_1 -> Syrk_nn26_A_1_2_C_1_1;
+  Syrk_nn26_A_1_2_C_1_1 -> Syrk_nn27_A_1_3_C_1_1;
+  Gemm_nt28_A_3_0_B_2_0_C_3_2 -> Gemm_nt29_A_3_1_B_2_1_C_3_2;
+  Gemm_nt29_A_3_1_B_2_1_C_3_2 -> Gemm_nt30_A_3_2_B_2_2_C_3_2;
+  Gemm_nt30_A_3_2_B_2_2_C_3_2 -> Gemm_nt31_A_3_3_B_2_3_C_3_2;
+  Syrk_nn32_A_2_0_C_2_2 -> Syrk_nn33_A_2_1_C_2_2;
+  Syrk_nn33_A_2_1_C_2_2 -> Syrk_nn34_A_2_2_C_2_2;
+  Syrk_nn34_A_2_2_C_2_2 -> Syrk_nn35_A_2_3_C_2_2;
+  Syrk_nn36_A_3_0_C_3_3 -> Syrk_nn37_A_3_1_C_3_3;
+  Syrk_nn37_A_3_1_C_3_3 -> Syrk_nn38_A_3_2_C_3_3;
+  Syrk_nn38_A_3_2_C_3_3 -> Syrk_nn39_A_3_3_C_3_3;
 }
