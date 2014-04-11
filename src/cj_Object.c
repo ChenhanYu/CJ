@@ -611,7 +611,7 @@ void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object *AL,                cj_Object *AR
   }
 }
 
-void cj_Matrix_cont_with_2x2_to_3x3 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,
+void cj_Matrix_cont_with_3x3_to_2x2 (cj_Object *ATL, cj_Object *ATR, cj_Object *A00, cj_Object *A01, cj_Object *A02,
                                                                      cj_Object *A10, cj_Object *A11, cj_Object *A12,
                                      cj_Object *ABL, cj_Object *ABR, cj_Object *A20, cj_Object *A21, cj_Object *A22,
                                                                      cj_Quadrant quadrant) {

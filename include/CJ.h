@@ -7,7 +7,7 @@
 #endif
 
 #define AUTOTUNE_GRID 1
-#define BLOCK_SIZE 4096
+#define BLOCK_SIZE 4
 #define CACHE_LINE 16
 #define MAX_WORKER 8
 #define MAX_DEV 4

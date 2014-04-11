@@ -176,7 +176,7 @@ void cj_Task_enqueue(cj_Object *target) {
     target->task->status = QUEUED;
     schedule->time_remaining[dest] += target->task->cost;
     cj_Dqueue_push_tail(schedule->ready_queue[dest], target);
-    //fprintf(stderr, "  Enqueue task<%d> to worker[%d]\n", target->task->id, dest);
+    fprintf(stderr, "  Enqueue task<%d> to worker[%d]\n", target->task->id, dest);
   }
   cj_Lock_release(&schedule->ready_queue_lock[dest]);
 }
@@ -288,6 +288,10 @@ void cj_Worker_prefetch (cj_Worker *worker) {
   task = schedule->ready_queue[worker->id]->dqueue->head;
   if (task) now = task->task->arg->dqueue->head;
 
+  fprintf(stderr, "Here in prefetch\n");
+
+  /* TODO : there is a bug is the worker is CPU only. */
+
   while (now) {
     if (now->objtype == CJ_MATRIX) {
       cj_Matrix *matrix = now->matrix;
@@ -352,11 +356,15 @@ void cj_Worker_prefetch (cj_Worker *worker) {
 }
 
 void cj_Worker_wait_prefetch (cj_Worker *worker) {
-  cj_Cache_sync(cj.device[worker->device_id]);
+  if (worker->device_id != -1) {
+    cj_Cache_sync(cj.device[worker->device_id]);
+  }
 }
 
 void cj_Worker_wait_execute (cj_Worker *worker) {
-  cj_Device_sync(cj.device[worker->device_id]);
+  if (worker->device_id != -1) {
+    cj_Device_sync(cj.device[worker->device_id]);
+  }
 }
 
 cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
@@ -443,6 +451,8 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   task->status = RUNNING;
   task->worker = worker;
 
+  fprintf(stderr, "%s\n", task->name);
+
   now = task->arg->dqueue->head;
   while (now) {
     if (now->objtype == CJ_MATRIX) {
@@ -491,8 +501,15 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
     now = now->next;
   }
   
+  fprintf(stderr, "before wait prefetch\n");
+
   cj_Worker_wait_prefetch(worker);
+
+  fprintf(stderr, "before prefetch\n");
+
   cj_Worker_prefetch(worker);
+
+  fprintf(stderr, "after prefetch\n");
   
   //usleep((unsigned int) task->cost);
   (*task->function)((void *) task);
