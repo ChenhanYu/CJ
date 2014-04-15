@@ -27,7 +27,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
 
   cj_Object *A, *B, *C;
   cj_Matrix *a, *b, *c;
-   A = task->arg->dqueue->head;
+  A = task->arg->dqueue->head;
   B = A->next;
   C = B->next;
   a = A->matrix;
@@ -774,7 +774,7 @@ void cj_Syrk_ln_task(cj_Object *alpha, cj_Object *A, cj_Object *beta, cj_Object 
   cj_Dqueue_push_tail(task->task->arg, arg_C);
 
   /* Setup task name. */
-  snprintf(task->task->name, 64, "Syrk_nn%d_A_%d_%d_C_%d_%d", 
+  snprintf(task->task->name, 64, "Syrk_ln%d_A_%d_%d_C_%d_%d", 
       task->task->id,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
       c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );

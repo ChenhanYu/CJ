@@ -9,10 +9,10 @@
 
 int main () {
   cj_Object *A, *B, *C, *D;
-  //int ma = 16, na = 16, mb = na, nb = 16, mc = ma, nc = nb;
+  int ma = 16, na = 16, mb = na, nb = 16, mc = ma, nc = nb;
   //int ma = 256, na = 256, mb = na, nb = 256, mc = ma, nc = nb;
   //int ma = 128, na = 128, mb = na, nb = 128, mc = ma, nc = nb;
-  int ma = 4096, na = 4096, mb = na, nb = 4096, mc = ma, nc = nb;
+  //int ma = 4096, na = 4096, mb = na, nb = 4096, mc = ma, nc = nb;
   //int ma = 2048, na = 2048, mb = na, nb = 2048, mc = ma, nc = nb;
   //int ma = 64, na = 64, mb = na, nb = 64, mc = ma, nc = nb;
   int md = ma, nd = nc;
@@ -30,9 +30,17 @@ int main () {
   cj_Matrix_set(C, mc, nc);
   cj_Matrix_set(D, md, nd);
 
+  cj_Matrix_set_identity(A);
+  cj_Matrix_set_identity(B);
+  cj_Matrix_set_identity(C);
+  cj_Matrix_set_identity(D);
+
   /* C = A*B */
   cj_Gemm_nn(A, B, C);
   //cj_Gemm_nn(C, B, D);
+  sleep(2);
+  cj_Object_acquire(C);
+  cj_Matrix_print(C);
 
   cj_Term();
 

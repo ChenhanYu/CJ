@@ -278,6 +278,10 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
       }
 
       cj_Dqueue_push_tail(matrix->dist[i][j], distribution);
+
+      /* Initial a lock for the distribution lock. Threads need to acquire the
+       * lock to change the distribution. */
+      cj_Lock_new(&(matrix->dist[i][j]->dqueue->lock));
     }
   }
 }
@@ -818,6 +822,13 @@ void cj_Matrix_distribution_print (cj_Object *object) {
     }
     fprintf(stderr, "\n");
   }
+}
+
+void cj_Object_acquire_task_function (void *task_ptr) {
+  cj_Task *task = (cj_Task *) task_ptr;
+  cj_Worker *worker = task->worker;
+  cj_devType devtype = worker->devtype;
+  int device_id = worker->device_id;
 }
 
 void cj_Object_acquire (cj_Object *object) {

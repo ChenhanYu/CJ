@@ -48,7 +48,7 @@ int main () {
     cj_Gemm_nn(A, B, B);
   }
 
-  sleep(50);
+  sleep(10);
   //exit(0);
   //cj_Matrix_distribution_print(A);
 
@@ -58,8 +58,8 @@ int main () {
   //cj_Matrix_distribution_print(D);
   
   //cj_Object_acquire(B);
-  //cj_Object_acquire(C);
-  //cj_Object_acquire(D);
+  cj_Object_acquire(C);
+  cj_Object_acquire(D);
   //cj_Matrix_print(B);
   cj_Matrix_print(C);
   cj_Matrix_print(D);

@@ -76,6 +76,8 @@ void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *targe
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
+/* This device cache is implemented that can only replace clean cache line. If
+ * the cache line is dirty, it will search for another one. */
 int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   int line_id = cache->fifo;
@@ -84,10 +86,10 @@ int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   cache->fifo ++;
   if (cache->fifo >= CACHE_LINE) cache->fifo = 0;
 
-  if (device->devtype == CJ_DEV_CUDA) {
-    if (cache->status[line_id] == CJ_CACHE_DIRTY) {
-      cj_Cache_async_write_back(device, line_id, target);
-    }
+  if (cache->status[line_id] == CJ_CACHE_DIRTY) {
+    line_id = cj_Cache_fetch(device, target);
+  }
+  else {
     cj_Cache_read_in(device, line_id, target);
   }
   return line_id;

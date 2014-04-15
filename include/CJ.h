@@ -96,6 +96,7 @@ struct task_s {
 };
 
 struct dqueue_s {
+  struct lock_s lock;
   int size;
   struct object_s *head;
   struct object_s *tail;
@@ -168,6 +169,7 @@ struct cj_s {
 
 struct cache_s {
   cj_cacheStatus status[CACHE_LINE];
+  struct object_s *obj_ptr[CACHE_LINE];
   uintptr_t dev_ptr[CACHE_LINE];
   char *hos_ptr[CACHE_LINE];
   int last_use[CACHE_LINE];
