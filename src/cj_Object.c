@@ -15,40 +15,6 @@ void cj_Object_error (const char *func_name, char* msg_text) {
   exit(0);
 }
 
-void cj_Distribution_duplicate (cj_Object *target, cj_Object *object) {
-  if (object->objtype != CJ_DISTRIBUTION || target->objtype != CJ_DISTRIBUTION) { 
-    cj_Object_error("Distribution_set", "The object and target are not a distribution.");
-  }
-  cj_Distribution *dist_tar = target->distribution;
-  cj_Distribution *dist_obj = target->distribution;
-
-  dist_tar->device    = dist_obj->device;
-  dist_tar->device_id = dist_obj->device_id;
-  dist_tar->cache_id  = dist_obj->cache_id;
-}
-
-void cj_Distribution_set (cj_Object *object, cj_Device *device, int device_id, int cache_id) {
-  if (object->objtype != CJ_DISTRIBUTION) {
-    cj_Object_error("Distribution_set", "The object is not a distribution.");
-  }
-  cj_Distribution *dist = object->distribution;
-  dist->device    = device;
-  dist->device_id = device_id;
-  dist->cache_id  = cache_id; 
-}
-
-cj_Distribution *cj_Distribution_new () {
-  cj_Distribution *dist = (cj_Distribution *) malloc(sizeof(cj_Distribution));
-  if (!dist) cj_Object_error("Distribution_new", "memory allocation failed.");
-
-  /* -1 represent that this is distributed on CPU. */
-  dist->device    = NULL;
-  dist->device_id = -1;
-  dist->cache_id  = -1;
-  dist->len       = BLOCK_SIZE*BLOCK_SIZE*sizeof(double); 
-  return dist;
-}
-
 int cj_Dqueue_get_size (cj_Object *object) {
   if (object->objtype != CJ_DQUEUE) {
     cj_Object_error("Dqueue_get_size", "The object is not a dqueue.");
@@ -234,7 +200,7 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
   }
   matrix->rset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
   matrix->wset = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
-  matrix->dist = (cj_Object ***) malloc((matrix->mb)*sizeof(cj_Object**));
+  matrix->dist = (cj_Distribution ***) malloc((matrix->mb)*sizeof(cj_Distribution**));
 
   if (!matrix->rset || !matrix->wset || !matrix->dist) {
     cj_Object_error("Matrix_set", "memory allocation failed.");
@@ -243,7 +209,7 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
   for (i = 0; i < matrix->mb; i++) {
     matrix->rset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
     matrix->wset[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
-    matrix->dist[i] = (cj_Object **) malloc(matrix->nb*sizeof(cj_Object*));
+    matrix->dist[i] = (cj_Distribution **) malloc(matrix->nb*sizeof(cj_Distribution*));
 
     if (!matrix->rset[i] || !matrix->wset[i] || !matrix->dist[i]) {
       cj_Object_error("Matrix_set", "memory allocation failed.");
@@ -252,36 +218,13 @@ void cj_Matrix_set (cj_Object *object, int m, int n) {
     for (j = 0; j < matrix->nb; j++) {
       matrix->rset[i][j] = cj_Object_new(CJ_DQUEUE);
       matrix->wset[i][j] = cj_Object_new(CJ_DQUEUE);
-      matrix->dist[i][j] = cj_Object_new(CJ_DQUEUE);
+      matrix->dist[i][j] = cj_Distribution_new();
 
       if (!matrix->rset[i][j] || !matrix->wset[i][j] || !matrix->dist[i][j]) {
         cj_Object_error("Matrix_set", "memory allocation failed.");
       }
 
-      /* Setup the initial distribution. (only on CPU) */
-      cj_Object *distribution = cj_Object_new(CJ_DISTRIBUTION);
-      if (i == matrix->mb - 1) {
-        if (j == matrix->nb - 1) {
-          distribution->distribution->len = (m - i*BLOCK_SIZE)*(n - j*BLOCK_SIZE)*elelen;
-        }
-        else {
-          distribution->distribution->len = (m - i*BLOCK_SIZE)*(BLOCK_SIZE)*elelen;
-        }
-      }
-      else {
-        if (j == matrix->nb - 1) {
-          distribution->distribution->len = (BLOCK_SIZE)*(n - j*BLOCK_SIZE)*elelen;
-        }
-        else {
-          distribution->distribution->len = (BLOCK_SIZE)*(BLOCK_SIZE)*elelen;
-        }
-      }
-
-      cj_Dqueue_push_tail(matrix->dist[i][j], distribution);
-
-      /* Initial a lock for the distribution lock. Threads need to acquire the
-       * lock to change the distribution. */
-      cj_Lock_new(&(matrix->dist[i][j]->dqueue->lock));
+      //cj_Lock_new(&(matrix->dist[i][j]->lock));
     }
   }
 }
@@ -797,26 +740,26 @@ void cj_Matrix_distribution_print (cj_Object *object) {
   if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
 
   cj_Matrix *matrix = object->matrix;
-  cj_Object ***dist = matrix->dist;
+  cj_Distribution ***distribution = matrix->dist;
   int i, j, k;
 
   if (matrix->nb <= 4 && matrix->mb <= 4) {
     fprintf(stderr, "     ");
     fprintf(stderr, "     ");
-    for (j = 0; j < matrix->nb; j++) fprintf(stderr, "%9d ", j);
+    for (j = 0; j < matrix->nb; j++) {
+      fprintf(stderr, "%15d ", j);
+      fprintf(stderr, "     ");
+    }
     fprintf(stderr, "\n");
     for (i = 0; i < matrix->mb; i++) {
       fprintf(stderr, "%4d ", i);
       fprintf(stderr, "     ");
       for (j = 0; j < matrix->nb; j++) {
-        cj_Object *now = dist[i][j]->dqueue->head;
-        int remain = 5;
-        while (now) {
-          fprintf(stderr, "%1d,", now->distribution->device_id);
-          now = now->next;
-          remain --;
+        cj_Distribution *dist = distribution[i][j];
+        for (k = 0; k < MAX_DEV + 1; k++) {
+          fprintf(stderr, "%d, ", dist->avail[k]);
         }
-        for (k = 0; k < remain; k++) fprintf(stderr, "  ");
+        fprintf(stderr, "     ");
       }
       fprintf(stderr, "\n");
     }
@@ -825,56 +768,39 @@ void cj_Matrix_distribution_print (cj_Object *object) {
 }
 
 void cj_Object_acquire_task_function (void *task_ptr) {
-  cj_Task *task = (cj_Task *) task_ptr;
-  cj_Worker *worker = task->worker;
-  cj_devType devtype = worker->devtype;
-  int device_id = worker->device_id;
 }
 
 void cj_Object_acquire (cj_Object *object) {
   if (object->objtype == CJ_MATRIX) {
     cj_Matrix *matrix = object->matrix;
-    cj_Matrix *base = matrix->base;
+    cj_Matrix *base   = matrix->base;
     cj_Object *view_obj = cj_Object_new(CJ_MATRIX);
     cj_Matrix *view = view_obj->matrix;
-    /* Set the base for this matrix view. */
     view->base = matrix->base;
 
-    cj_Object *dist;
-    /* Check the distribution. */
-    int i, j;
+    int i, j, k;
     for (i = 0; i < matrix->m/BLOCK_SIZE; i ++) {
       for (j = 0; j < matrix->n/BLOCK_SIZE; j ++) {
-        dist = base->dist[matrix->offm/BLOCK_SIZE + i][matrix->offn/BLOCK_SIZE + j];
-        cj_Object *dist_cpu = NULL;
-        cj_Object *dist_I = dist->dqueue->head;
+        cj_Distribution *dist = base->dist[matrix->offm/BLOCK_SIZE + i][matrix->offn/BLOCK_SIZE + j];
 
         view->offm = i*BLOCK_SIZE;
         view->offn = j*BLOCK_SIZE;
         view->m    = min(BLOCK_SIZE, matrix->m - i*BLOCK_SIZE);
         view->n    = min(BLOCK_SIZE, matrix->n - j*BLOCK_SIZE);
 
-        //fprintf(stderr, "offm : %d, offn : %d\n", view->offm, view->offn);
-
-        while (dist_I) {
-          if (dist_I->distribution->device_id == -1) {
-            dist_cpu = dist_I;
-            break;
+        if (dist->avail[0] == FALSE) {
+          for (k = 1; k < MAX_DEV + 1; k++) {
+            if (dist->avail[k] == TRUE) {
+              cj_Cache_write_back(dist->device[k], dist->line[k], view_obj);
+              break;
+            }
           }
-          dist_I = dist_I->next;
-        }
-        if (!dist_cpu) {
-          dist_I = dist->dqueue->head;
-          cj_Device *device = dist_I->distribution->device;
-          int cache_id = dist_I->distribution->cache_id;
-          //fprintf(stderr, "device_type: %d, %s\n", device->devtype, device->name);
-          cj_Cache_write_back(device, cache_id, view_obj);
         }
       }
     }
-    /* Need to free "view" here. */
   }
 }
+
 
 cj_Object *cj_Object_append (cj_objType type, void *ptr) {
   cj_Object *object;

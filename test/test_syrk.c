@@ -42,7 +42,7 @@ int main () {
   sleep(2);
 
   cj_Matrix_distribution_print(C);
-  cj_Object_acquire(C);
+  //cj_Object_acquire(C);
 
   sleep(2);
 

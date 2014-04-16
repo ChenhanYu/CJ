@@ -21,6 +21,7 @@ void cj_Device_error (const char *func_name, char* msg_text) {
 void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   uintptr_t ptr_d = cache->dev_ptr[line_id];
+  //fprintf(stderr, "inside cache_read_in\n");
   char *ptr_h;
   if (device->devtype == CJ_DEV_CUDA) {    
     if (target->objtype == CJ_MATRIX) {
@@ -70,10 +71,8 @@ void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *targe
       cj_Device_async_memcpy2d_d2h(ptr_h, base->m*base->elelen, ptr_d, BLOCK_SIZE*base->elelen,
           matrix->m*matrix->elelen, matrix->n, device);
     }
-    else {
-    }
   }
-  cache->status[line_id] = CJ_CACHE_CLEAN;
+  //cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
 /* This device cache is implemented that can only replace clean cache line. If

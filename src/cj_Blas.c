@@ -24,6 +24,7 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
   cj_Worker *worker = task->worker;
   cj_devType devtype = worker->devtype;
   int device_id = worker->device_id;
+  int dest = device_id + 1;
 
   cj_Object *A, *B, *C;
   cj_Matrix *a, *b, *c;
@@ -41,28 +42,26 @@ void cj_Gemm_nn_task_function (void *task_ptr) {
     cj_Cache *cache = &(device->cache);
     cublasHandle_t *handle = &(device->handle);
     cublasStatus_t status;
-    cj_Object *now_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE]->dqueue->head;
-    cj_Object *now_b = b->base->dist[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE]->dqueue->head;
-    cj_Object *now_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE]->dqueue->head;
-    while (now_a->distribution->device_id != device_id && now_a != NULL) now_a = now_a->next;
-    while (now_b->distribution->device_id != device_id && now_b != NULL) now_b = now_b->next;
-    while (now_c->distribution->device_id != device_id && now_c != NULL) now_c = now_c->next;
-    if (!now_a || !now_b || !now_c) 
+    cj_Distribution *dist_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
+    cj_Distribution *dist_b = b->base->dist[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
+    cj_Distribution *dist_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+    if (dist_a->avail[dest] != TRUE || dist_b->avail[dest] != TRUE || dist_c->avail[dest]) {
       cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
+    }
 
     if (a->eletype == CJ_SINGLE) { 
       float f_one = 1.0;
-      float *a_buff = (float *) cache->dev_ptr[now_a->distribution->cache_id];
-      float *b_buff = (float *) cache->dev_ptr[now_b->distribution->cache_id];
-      float *c_buff = (float *) cache->dev_ptr[now_c->distribution->cache_id];
+      float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
+      float *b_buff = (float *) cache->dev_ptr[dist_b->line[dest]];
+      float *c_buff = (float *) cache->dev_ptr[dist_c->line[dest]];
       status = cublasSgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
           b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
     }
     else {
       double f_one = 1.0;
-      double *a_buff = (double *) cache->dev_ptr[now_a->distribution->cache_id];
-      double *b_buff = (double *) cache->dev_ptr[now_b->distribution->cache_id];
-      double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
+      double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
+      double *b_buff = (double *) cache->dev_ptr[dist_b->line[dest]];
+      double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
       //fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
       //fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
       status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
@@ -373,7 +372,8 @@ void cj_Gemm_nt_task_function (void *task_ptr) {
 	cj_Worker *worker = task->worker;
 	cj_devType devtype = worker->devtype;
 	int device_id = worker->device_id;
-	
+  int dest = device_id + 1;
+
 	cj_Object *A, *B, *C;
 	cj_Matrix *a, *b, *c;
 	A = task->arg->dqueue->head;
@@ -390,28 +390,27 @@ void cj_Gemm_nt_task_function (void *task_ptr) {
 		cj_Cache *cache = &(device->cache);
 		cublasHandle_t *handle = &(device->handle);
 		cublasStatus_t status;
-		cj_Object *now_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE]->dqueue->head;
-		cj_Object *now_b = b->base->dist[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE]->dqueue->head;
-		cj_Object *now_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE]->dqueue->head;
-		while (now_a->distribution->device_id != device_id && now_a != NULL) now_a = now_a->next;
-		while (now_b->distribution->device_id != device_id && now_b != NULL) now_b = now_b->next;
-		while (now_c->distribution->device_id != device_id && now_c != NULL) now_c = now_c->next;
-		if (!now_a || !now_b || !now_c) 
-			cj_Blas_error("cj_Gemm_nt_task_function", "No propriate distribution.");
+
+    cj_Distribution *dist_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
+    cj_Distribution *dist_b = b->base->dist[b->offm/BLOCK_SIZE][b->offn/BLOCK_SIZE];
+    cj_Distribution *dist_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+    if (dist_a->avail[dest] != TRUE || dist_b->avail[dest] != TRUE || dist_c->avail[dest]) {
+      cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
+    }
 		
 		if (a->eletype == CJ_SINGLE) { 
 			float f_one = 1.0;
-			float *a_buff = (float *) cache->dev_ptr[now_a->distribution->cache_id];
-			float *b_buff = (float *) cache->dev_ptr[now_b->distribution->cache_id];
-			float *c_buff = (float *) cache->dev_ptr[now_c->distribution->cache_id];
+      float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
+      float *b_buff = (float *) cache->dev_ptr[dist_b->line[dest]];
+      float *c_buff = (float *) cache->dev_ptr[dist_c->line[dest]];
 			status = cublasSgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_T, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
 								 b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
 		}
 		else {
 			double f_one = 1.0;
-			double *a_buff = (double *) cache->dev_ptr[now_a->distribution->cache_id];
-			double *b_buff = (double *) cache->dev_ptr[now_b->distribution->cache_id];
-			double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
+      double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
+      double *b_buff = (double *) cache->dev_ptr[dist_b->line[dest]];
+      double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
 			//fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
 			//fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
 			status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_T, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
@@ -424,7 +423,6 @@ void cj_Gemm_nt_task_function (void *task_ptr) {
 		if (a->eletype == CJ_SINGLE) {
 			float f_one = 1.0;
 			float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
-			//DO we have proble here???B is a matrix to be transformed...
 			float *b_buff = (float *) (b->base->buff) + (b->base->m)*(b->offn) + b->offm;
 			float *c_buff = (float *) (c->base->buff) + (c->base->m)*(c->offn) + c->offm;
 			sgemm_("N", "T", &(c->m), &(a->n), &(c->n), &f_one, a_buff, &(a->base->m), b_buff, &(b->base->m), &f_one, c_buff, &(c->base->m));
@@ -690,6 +688,7 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
   cj_Worker *worker = task->worker;
   cj_devType devtype = worker->devtype;
   int device_id = worker->device_id;
+  int dest = device_id + 1;
 
   cj_Object *A, *C;
   cj_Matrix *a, *c;
@@ -704,24 +703,23 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
     cj_Cache *cache = &(device->cache);
     cublasHandle_t *handle = &(device->handle);
     cublasStatus_t status;
-    cj_Object *now_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE]->dqueue->head;
-    cj_Object *now_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE]->dqueue->head;
-    while (now_a->distribution->device_id != device_id && now_a != NULL) now_a = now_a->next;
-    while (now_c->distribution->device_id != device_id && now_c != NULL) now_c = now_c->next;
-    if (!now_a || !now_c) 
-      cj_Blas_error("cj_Syrk_ln_task_function", "No propriate distribution.");
+    cj_Distribution *dist_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
+    cj_Distribution *dist_c = c->base->dist[c->offm/BLOCK_SIZE][c->offn/BLOCK_SIZE];
+    if (dist_a->avail[dest] != TRUE || dist_c->avail[dest]) {
+      cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
+    }
 
     if (a->eletype == CJ_SINGLE) { 
       float f_one = 1.0;
-      float *a_buff = (float *) cache->dev_ptr[now_a->distribution->cache_id];
-      float *c_buff = (float *) cache->dev_ptr[now_c->distribution->cache_id];
+      float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
+      float *c_buff = (float *) cache->dev_ptr[dist_c->line[dest]];
       status = cublasSsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_one, a_buff, BLOCK_SIZE, 
           &f_one, c_buff, BLOCK_SIZE);
     }
     else {
       double f_one = 1.0;
-      double *a_buff = (double *) cache->dev_ptr[now_a->distribution->cache_id];
-      double *c_buff = (double *) cache->dev_ptr[now_c->distribution->cache_id];
+      double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
+      double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
       fprintf(stderr, "%d, %d\n", (int) a_buff, (int) c_buff);
       status = cublasDsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_one, a_buff, BLOCK_SIZE, 
           &f_one, c_buff, BLOCK_SIZE);

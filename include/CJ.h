@@ -7,8 +7,8 @@
 #endif
 
 #define AUTOTUNE_GRID 1
-#define BLOCK_SIZE 4
-#define CACHE_LINE 16
+#define BLOCK_SIZE 2048
+#define CACHE_LINE 32
 #define MAX_WORKER 8
 #define MAX_DEV 4
 #define MAX_GPU 4
@@ -27,22 +27,15 @@ typedef enum {CJ_TASK_GEMM} cj_taskType;
 typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
 typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 
-struct distribution_s {
-  struct device_s *device;
-  int device_id;
-  int cache_id;
-  /* 1D memory features. */
-  size_t len;
-  /* 2D memory features. */
-  /*
-  size_t pitch;
-  size_t m;
-  size_t nbytes;
-  */
-};
-
 struct lock_s {
   pthread_mutex_t lock;
+};
+
+struct distribution_s {
+  cj_Bool avail[MAX_DEV + 1];
+  struct device_s *device[MAX_DEV + 1];
+  int line[MAX_WORKER + 1];
+  struct lock_s lock;
 };
 
 struct constant_s {
@@ -66,7 +59,7 @@ struct matrix_s {
   /* double array of dqueue */
   struct object_s ***wset;
   /* distribution */
-  struct object_s ***dist;
+  struct distribution_s ***dist;
   struct matrix_s *base;
   char *buff;
 };
