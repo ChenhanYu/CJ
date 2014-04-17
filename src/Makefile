@@ -5,8 +5,10 @@ D_CC_SRC = cj.c \
 		   cj_Object.c \
 		   cj_Graph.c \
 		   cj_Blas.c \
+		   cj_Sparse.c \
 		   cj_Device.c \
-		   cj_Autotune.c
+		   cj_Autotune.c \
+			 cj_Profile.c
 
 D_CC_OBJ = $(D_CC_SRC:.c=.o)
 

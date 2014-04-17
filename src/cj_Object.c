@@ -8,6 +8,8 @@
 #include "cj_Graph.h"
 #include "cj_Object.h"
 #include "cj_Device.h"
+#include "cj_Sparse.h"
+#include "cj_Profile.h"
 
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
@@ -847,6 +849,14 @@ cj_Object *cj_Object_new (cj_objType type) {
     object->objtype = CJ_MATRIX;
     object->matrix = cj_Matrix_new();
   }
+  if (type == CJ_CSC) {
+    object->objtype = CJ_CSC;
+    object->csc = cj_Csc_new();
+  }
+  if (type == CJ_SPARSE) {
+    object->objtype = CJ_SPARSE;
+    object->sparse = cj_Sparse_new();
+  }
   else if (type == CJ_DQUEUE) {
     object->objtype = CJ_DQUEUE;
     object->dqueue = cj_Dqueue_new();
@@ -867,6 +877,10 @@ cj_Object *cj_Object_new (cj_objType type) {
   else if (type == CJ_DISTRIBUTION) {
     object->objtype = CJ_DISTRIBUTION;
     object->distribution = cj_Distribution_new();
+  }
+  else if (type == CJ_EVENT) {
+    object->objtype = CJ_EVENT;
+    object->event = cj_Event_new();
   }
 
   object->prev = NULL;

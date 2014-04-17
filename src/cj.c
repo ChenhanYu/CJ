@@ -10,6 +10,7 @@
 #include "cj_Object.h"
 #include "cj_Blas.h"
 #include "cj_Autotune.h"
+#include "cj_Profile.h"
 #include "cj.h"
 
 static cj_t cj;
@@ -400,11 +401,12 @@ cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
     cj_error("Worker_new", "memory allocation failed.");
   }
 
-  worker->devtype    = devtype;
-  worker->id         = id;
-  worker->device_id  = -1;
-  worker->cj_ptr     = &cj;
-  worker->write_back = cj_Object_new(CJ_DQUEUE); 
+  worker->devtype      = devtype;
+  worker->id           = id;
+  worker->device_id    = -1;
+  worker->cj_ptr       = &cj;
+  worker->write_back   = cj_Object_new(CJ_DQUEUE); 
+  worker->current_task = NULL;
 
   fprintf(stderr, "  }\n"); 
   return worker;
@@ -469,11 +471,15 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
 int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   task->status = RUNNING;
   task->worker = worker;
+  worker->current_task = task;
   int i;
 
   //fprintf(stderr, "%s\n", task->name);
 
+
+  cj_Profile_worker_record(worker, CJ_EVENT_FETCH_BEG);
   cj_Worker_fetch(task, worker);
+  cj_Profile_worker_record(worker, CJ_EVENT_FETCH_END);
   //fprintf(stderr, "before wait prefetch\n");
   int d2h = cj_Worker_prefetch_d2h(worker);
   int h2d = cj_Worker_prefetch_h2d(worker);
@@ -482,8 +488,10 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   //fprintf(stderr, "after fetch\n");
   
   /* Change cache status here. */
+  cj_Profile_worker_record(worker, CJ_EVENT_TASK_RUN_BEG);
   (*task->function)((void *) task);
   cj_Worker_wait_execute(worker);
+  cj_Profile_worker_record(worker, CJ_EVENT_TASK_RUN_END);
 
   cj_Object *arg_I = task->arg->dqueue->head;
   while (arg_I) {
@@ -514,6 +522,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   }
 
   cj_Worker_wait_prefetch(worker, h2d, d2h);
+  worker->current_task = NULL;
 
   return 1;
 }
@@ -608,7 +617,7 @@ void cj_Init(int nworker) {
 
   int i, ret;
   void *(*worker_entry_point)(void *);
-
+  cj_Profile_init();
   cj_Graph_init();
   cj_Schedule_init();
   cj_Autotune_init();

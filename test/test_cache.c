@@ -7,6 +7,7 @@
 #include "../src/cj_Object.h"
 #include "../src/cj_Blas.h"
 #include "../src/cj.h"
+#include "../src/cj_Profile.h"
 
 int main () {
   cj_Object *A, *B, *C, *D;
@@ -40,7 +41,7 @@ int main () {
   cj_Matrix_set_identity(D);
   //cj_Matrix_print(A);
   //cj_Matrix_distribution_print(A);
-  for (iter = 0; iter < 5; iter++) {
+  for (iter = 0; iter < 2; iter++) {
     cj_Gemm_nn(A, B, C);
     cj_Gemm_nn(A, C, D);
     cj_Gemm_nn(A, C, C);
@@ -49,6 +50,8 @@ int main () {
   }
 
   sleep(35);
+
+  cj_Profile_output_timeline();
 
   exit(0);
   //cj_Matrix_distribution_print(A);

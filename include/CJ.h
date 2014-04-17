@@ -14,7 +14,7 @@
 #define MAX_GPU 4
 #define MAX_MIC 4
 
-typedef enum {CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CONSTANT} cj_objType;
+typedef enum {CJ_EVENT, CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CSC, CJ_SPARSE, CJ_CONSTANT} cj_objType;
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
 typedef enum {CJ_W, CJ_R, CJ_RW} cj_rwType;
 typedef enum {CJ_TOP, CJ_BOTTOM, CJ_LEFT, CJ_RIGHT} cj_Side;
@@ -25,6 +25,8 @@ typedef enum {TRUE, FALSE} cj_Bool;
 typedef enum {WORKER_SLEEPING, WORKER_RUNNING} cj_workerStatus;
 typedef enum {CJ_TASK_GEMM} cj_taskType;
 typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
+typedef enum {CJ_EVENT_TASK_RUN_BEG, CJ_EVENT_TASK_RUN_END, CJ_EVENT_FETCH_BEG, CJ_EVENT_FETCH_END, 
+  CJ_EVENT_PREFETCH, CJ_EVENT_WAIT_PREFETCH, CJ_EVENT_INIT, CJ_EVENT_TERM} cj_eveType;
 typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
 
 struct lock_s {
@@ -62,6 +64,30 @@ struct matrix_s {
   struct distribution_s ***dist;
   struct matrix_s *base;
   char *buff;
+};
+
+struct csc_s {
+  cj_eleType eletype;
+  size_t elelen;
+  int m;
+  int n;
+  int nnz;
+  int *colptr;
+  int *rowind;
+  void *values;
+};
+
+struct sparse_s {
+  int m;
+  int n;
+  int nnz;
+  int offm;
+  int offn;
+  struct object_s *s00;
+  struct object_s *s11;
+  struct object_s *s20;
+  struct object_s *s21;
+  struct object_s *s22;
 };
 
 struct task_s {
@@ -104,6 +130,13 @@ struct edge_s {
   struct task_s *out;
 };
 
+struct event_s {
+  cj_eveType evetype;
+  float beg;
+  float end;
+  int task_id;
+};
+
 struct object_s {
   void *key;
   cj_objType objtype;
@@ -114,12 +147,18 @@ struct object_s {
     struct vertex_s *vertex;
     struct edge_s   *edge;
     struct distribution_s *distribution;
+    struct csc_s    *csc;
+    struct sparse_s *sparse;
+    struct event_s  *event;
   };
   struct object_s *prev;
   struct object_s *next;
   cj_rwType rwtype;
 };
 
+struct profile_s {
+  struct object_s *worker_timeline[MAX_WORKER];
+};
 
 struct autotune_s {
   float mkl_sgemm[AUTOTUNE_GRID];
@@ -136,6 +175,7 @@ struct worker_s {
   pthread_t threadid;
   struct cj_s *cj_ptr;
   struct object_s *write_back;
+  struct task_s *current_task;
 };
 
 struct schedule_s {
@@ -197,9 +237,13 @@ typedef struct schedule_s cj_Schedule;
 typedef struct cj_s cj_t;
 typedef struct autotune_s cj_Autotune;
 typedef struct distribution_s cj_Distribution;
+typedef struct event_s cj_Event;
+typedef struct profile_s cj_Profile;
 typedef struct dqueue_s cj_Dqueue;
 typedef struct task_s   cj_Task;
 typedef struct matrix_s cj_Matrix;
+typedef struct csc_s    cj_Csc;
+typedef struct sparse_s cj_Sparse;
 typedef struct object_s cj_Object;
 typedef struct vertex_s cj_Vertex;
 typedef struct edge_s   cj_Edge;
