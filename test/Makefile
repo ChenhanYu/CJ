@@ -7,8 +7,8 @@ D_CC_EXE = $(D_CC_SRC:.c=.x)
 
 all: $(D_CC_EXE)
 
-%.x : %.c
+%.x : %.c $(LIBCJ)
 	$(CC) $(CFLAGS) $< -o $@ $(INC) $(LIB)
 
 clean:
-	rm -f *.x
+	rm -f *.x *~

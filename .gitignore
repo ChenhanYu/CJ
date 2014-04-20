@@ -1,0 +1,15 @@
+*~
+*.dot
+*.png
+*.log
+*.aux
+*.pdf
+*.eps
+*.spl
+*.gz
+*.so
+*.a
+*.o
+*.bin
+*tags
+

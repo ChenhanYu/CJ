@@ -6,3 +6,11 @@
  *    Jianyu Huang, jianyu@cs.utexas.edu
  *
  */
+
+Change to GPU/Intel MKL:
+CC = icc
+CFLAGS         = -openmp -O2 -DCJ_HAVE_CUDA
+#LIB            = $(LIBCJ) -L$(CUDA_DIR)/lib64 -lcudart -lcublas -lpthread -lm -mkl=sequential 
+
+src/
+

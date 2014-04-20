@@ -22,4 +22,4 @@ $(LIBCJ): $(D_CC_OBJ)
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
 clean:
-		rm -f *.cu_o *.o *~ *.linkinfo
+		rm -f *.cu_o *.o *~ *.linkinfo ../include/*~

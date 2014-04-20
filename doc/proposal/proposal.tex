@@ -1,0 +1,326 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Programming/Coding Assignment
+% LaTeX Template
+%
+% This template has been downloaded from:
+% http://www.latextemplates.com
+%
+% Original author:
+% Ted Pavlic (http://www.tedpavlic.com)
+%
+% Note:
+% The \lipsum[#] commands throughout this template generate dummy text
+% to fill the template out. These commands should all be removed when 
+% writing assignment content.
+%
+% This template uses a Perl script as an example snippet of code, most other
+% languages are also usable. Configure them in the "CODE INCLUSION 
+% CONFIGURATION" section.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage{fancyhdr} % Required for custom headers
+\usepackage{lastpage} % Required to determine the last page for the footer
+\usepackage{extramarks} % Required for headers and footers
+\usepackage[usenames,dvipsnames]{color} % Required for custom colors
+\usepackage{graphicx} % Required to insert images
+\usepackage{listings} % Required for insertion of code
+\usepackage{courier} % Required for the courier font
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Margins
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1} % Line spacing
+
+% Set up the header and footer
+\pagestyle{fancy}
+\lhead{\hmwkAuthorName} % Top left header
+\rhead{\hmwkClass\ (\hmwkClassInstructor): \hmwkTitle} % Top center head
+%\rhead{\firstxmark} % Top right header
+\lfoot{\lastxmark} % Bottom left footer
+\cfoot{} % Bottom center footer
+\rfoot{Page\ \thepage\ of\ \protect\pageref{LastPage}} % Bottom right footer
+\renewcommand\headrulewidth{0.4pt} % Size of the header rule
+\renewcommand\footrulewidth{0.4pt} % Size of the footer rule
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+%----------------------------------------------------------------------------------------
+%	CODE INCLUSION CONFIGURATION
+%----------------------------------------------------------------------------------------
+
+\definecolor{MyDarkGreen}{rgb}{0.0,0.4,0.0} % This is the color used for comments
+\lstloadlanguages{Matlab} % Load Perl syntax for listings, for a list of other languages supported see: ftp://ftp.tex.ac.uk/tex-archive/macros/latex/contrib/listings/listings.pdf
+\lstset{language=Matlab, % Use Perl in this example
+        frame=single, % Single frame around code
+        basicstyle=\small\ttfamily, % Use small true type font
+        keywordstyle=[1]\color{Blue}\bf, % Perl functions bold and blue
+        keywordstyle=[2]\color{Purple}, % Perl function arguments purple
+        keywordstyle=[3]\color{Blue}\underbar, % Custom functions underlined and blue
+        identifierstyle=, % Nothing special about identifiers                                         
+        commentstyle=\usefont{T1}{pcr}{m}{sl}\color{MyDarkGreen}\small, % Comments small dark green courier font
+        stringstyle=\color{Purple}, % Strings are purple
+        showstringspaces=false, % Don't put marks in string spaces
+        tabsize=5, % 5 spaces per tab
+        %
+        % Put standard Perl functions not included in the default language here
+        morekeywords={rand},
+        %
+        % Put Perl function parameters here
+        morekeywords=[2]{on, off, interp},
+        %
+        % Put user defined functions here
+        morekeywords=[3]{test},
+       	%
+        morecomment=[l][\color{Blue}]{...}, % Line continuation (...) like blue comment
+        numbers=left, % Line numbers on left
+        firstnumber=1, % Line numbers start with line 1
+        numberstyle=\tiny\color{Blue}, % Line numbers are blue and small
+        stepnumber=5 % Line numbers go in steps of 5
+}
+
+% Creates a new command to include a perl script, the first parameter is the filename of the script (without .pl), the second parameter is the caption
+\newcommand{\perlscript}[2]{
+\begin{itemize}
+\item[]\lstinputlisting[caption=#2,label=#1]{#1.m}
+\end{itemize}
+}
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT STRUCTURE COMMANDS
+%	Skip this unless you know what you're doing
+%----------------------------------------------------------------------------------------
+
+% Header and footer for when a page split occurs within a problem environment
+\newcommand{\enterProblemHeader}[1]{
+\nobreak\extramarks{#1}{#1 continued on next page\ldots}\nobreak
+\nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak
+}
+
+% Header and footer for when a page split occurs between problem environments
+\newcommand{\exitProblemHeader}[1]{
+\nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak
+\nobreak\extramarks{#1}{}\nobreak
+}
+
+\setcounter{secnumdepth}{0} % Removes default section numbers
+\newcounter{homeworkProblemCounter} % Creates a counter to keep track of the number of problems
+
+\newcommand{\homeworkProblemName}{}
+\newenvironment{homeworkProblem}[1]{ % Makes a new environment called homeworkProblem which takes 1 argument (custom name) but the default is "Problem #"
+\stepcounter{homeworkProblemCounter} % Increase counter for number of problems
+\renewcommand{\homeworkProblemName}{#1} % Assign \homeworkProblemName the name of the problem
+\section{\homeworkProblemName} % Make a section in the document with the custom problem count
+\enterProblemHeader{\homeworkProblemName} % Header and footer within the environment
+}{
+\exitProblemHeader{\homeworkProblemName} % Header and footer after the environment
+}
+
+\newcommand{\problemAnswer}[1]{ % Defines the problem answer command with the content as the only argument
+\noindent\framebox[\columnwidth][c]{\begin{minipage}{0.98\columnwidth}#1\end{minipage}} % Makes the box around the problem answer and puts the content inside
+}
+
+\newcommand{\homeworkSectionName}{}
+\newenvironment{homeworkSection}[1]{ % New environment for sections within homework problems, takes 1 argument - the name of the section
+\renewcommand{\homeworkSectionName}{#1} % Assign \homeworkSectionName to the name of the section from the environment argument
+\subsection{\homeworkSectionName} % Make a subsection with the custom name of the subsection
+\enterProblemHeader{\homeworkProblemName\ [\homeworkSectionName]} % Header and footer within the environment
+}{
+\enterProblemHeader{\homeworkProblemName} % Header and footer after the environment
+}
+
+%----------------------------------------------------------------------------------------
+%	NAME AND CLASS SECTION
+%----------------------------------------------------------------------------------------
+
+\newcommand{\hmwkTitle}{Course Project Proposal} % Assignment title
+%\newcommand{\hmwkDueDate}{Monday,\ January\ 1,\ 2012} % Due date
+\newcommand{\hmwkClass}{CS 380C Compiler} % Course/class
+%\newcommand{\hmwkClassTime}{10:30am} % Class/lecture time
+\newcommand{\hmwkClassInstructor}{Calvin Lin} % Teacher/lecturer
+\newcommand{\hmwkAuthorName}{Chenhan Yu \&\& Jianyu Huang} % Your name
+\newcommand{\hmwkAuthorsColName}{Chenhan Yu\\ Jianyu Huang} % Your name
+\newcommand{\hmwkAuthorA}{Chenhan Yu(cy22547)} % Your name
+\newcommand{\hmwkAuthorB}{Jianyu Huang(jh57266)} % Your name
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{
+\vspace{2in}
+\textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+%\normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate}\\
+%\vspace{0.1in}\large{\textit{\hmwkClassInstructor\ \hmwkClassTime}}
+\vspace{3in}
+}
+
+%\author{\textbf{\hmwkAuthorName}}
+\author{\textbf{\hmwkAuthorA}
+\and
+\textbf{\hmwkAuthorB}}
+%\author{\textbf{\hmwkAuthorNameB}}
+\date{} % Insert date here if you want it to appear below your name
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle
+
+%----------------------------------------------------------------------------------------
+%	TABLE OF CONTENTS
+%----------------------------------------------------------------------------------------
+
+%\setcounter{tocdepth}{1} % Uncomment this line if you don't want subsections listed in the ToC
+
+\newpage
+%\tableofcontents
+%\newpage
+
+%----------------------------------------------------
+%------------------------------------
+%	PROBLEM 1
+%----------------------------------------------------------------------------------------
+
+% To have just one problem per page, simply put a \clearpage after each problem
+
+%\begin{homeworkProblem}{Problem \arabic{homeworkProblemCounter}}
+\begin{homeworkProblem}{Goals}
+In this project, our goal is to free user from writing multiple parallel APIs, learning parallel algorithms, yet at the same time still fully exploit the computing power of heterogeneous systems.\\
+By dependency analysis, we are able to transform this problem into a scheduling problem which will be solved by some new heuristic algorithm later. The dependency analysis is implemented on domain languages level (a.k.a task level) but not instruction level to take the advantage of some existing high performance libraries such as BLAS, LAPACK.\\
+Note that the just in time(JIT) analysis free user to aware of any control flow, loop or function call issue in parallel computing, but still cheap enough since tasks are much fewer than instructions. At the end we will also show how this environment can be extended to support sparse matrix computation.
+
+\end{homeworkProblem}
+%\clearpage
+
+
+%\begin{homeworkProblem}{Problem 27.5}%\arabic{27.4}}
+%	Please see my manuscript.
+%\end{homeworkProblem}
+%
+%
+%\begin{homeworkProblem}{Problem 28.2}%\arabic{27.4}}
+%	Please see my manuscript.
+%\end{homeworkProblem}
+%
+%\begin{homeworkProblem}{Problem 28.3}%\arabic{27.4}}
+%	Please see my manuscript.
+%\end{homeworkProblem}
+%
+%----------------------------------------------------------------------------------------
+%	PROBLEM 2
+%----------------------------------------------------------------------------------------
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Relevance to Compiler}
+	\begin{itemize}
+		\item 1. Dependency Analysis\\
+			Constraints on the order in which statements may be executed.(Flow dependence: RAW, Anti-dependence: WAR, Output dependences: WAW)
+		\item 2. Instruction Scheduling\\
+The matrix operations are split into blocks, thus each submatrix computation (a.k.a task level) can be viewed as an instruction. %Instruction schedule is introduced to us in class later, and we need more background knowledge about instruction schedule.
+		\item 3. JIT feature\\
+Run-time analysis and schedule is a JIT feature. The task is not executed until the tasks have been dispatched to the threads.
+	\end{itemize}
+\end{homeworkProblem}
+%%---------------------------------------------------------------------------------------
+
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Background Materials}
+	%%biblatex
+	%%\renewcommand{\refname}{\CHead{d}}
+
+%\cite{lin2010application}
+%\cite{guyer2004broadway}
+%\cite{van2009libflame}
+%\cite{vanlibflame}
+%\cite{van2008science}
+
+	\renewcommand\refname{\vskip -1cm}
+	\bibliographystyle{amsplain}
+	\bibliography{proposal}
+\end{homeworkProblem}
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Solution}
+In Ernie Chan’s dissertation (SuperMatrix), he has already addressed some issues we put forward in our “Goals” part. Ernie presents an application of dependence analysis and runtime data flow scheduling to matrix computations. By investigating the scheduling of matrix computations expressed as directed acyclic graphs for shared-memory parallism, Ernie provides a flexible framework for scheduling matrix computations and developed a scheduling algorithm that leverages both load balance and data locality.\\
+However, as far as we see, there are still much further work we can do, as the followings,
+\begin{itemize}
+	\item \emph{Flexible granularity for block size}\\
+		The block size for SuperMatrix is fixed, which is not flexible. We would like to make the block size adjustable in the run-time, which is a "JIT" feature.
+	\item \emph{high utilization for heterogeneous architecture}\\
+		Once using GPU, SuperMatrix cannot utilize CPU. We would like to exploit both CPU and GPU, i.e. construct a performance model to leverage the heterogeneous architecture to achieve high utilization.
+	\item \emph{ubiquitous interface for diverse libraries}\\
+		SuperMatrix is bounded with libflame library. We would like to provide ubiquitous interface for diverse libraries, instead of being restricted to libflame.
+	\item \emph{broad support for multiple operations}\\
+		SuperMatrix only supports dense linear algebra. We will try to support other operations such as sparse matrix computations.
+\end{itemize}
+\end{homeworkProblem}
+
+%----------------------------------------------------------------------------------------
+
+
+
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Plan}
+We will do the follows,
+\begin{itemize}
+	\item Dependency analysis to construct directed acyclic graphs, 
+	\item Construct performance model for heterogeneous architecture (both CPU and GPU)
+	\item Dispatch the tasks to threads, addressing data locality and load balance
+\end{itemize}
+
+
+\end{homeworkProblem}
+%----------------------------------------------------------------------------------------
+
+
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Evaluation}
+	\begin{itemize}
+		\item Visualization of the denpendency graph for all program(intermediate output)
+		\item Measurement of performance benefits for parallized matrix computation
+	\end{itemize}
+
+%Dependency graph(a screenshot here)
+\end{homeworkProblem}
+%----------------------------------------------------------------------------------------
+
+
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Project Personnel}
+Since this is a group of two, we both would like to contribute to this project more to gain more experience in Compiler course and our research area.
+For the final contribution, please refer to our Github repository.
+\end{homeworkProblem}
+%----------------------------------------------------------------------------------------
+
+%%---------------------------------------------------------------------------------------
+\begin{homeworkProblem}{Schedule}
+3.10$\sim$3.20: Proposal\\
+3.21$\sim$3.30: Dependency Analysis\\
+3.31$\sim$4.6: Scheduling (put the task into an execution queue)\\
+4.7$\sim$4.13: Performance Model for heterogeneous architecture (for JIT feature)\\
+4.14$\sim$4.20: Dispatch the task and execute based on the performance model\\
+4.21$\sim$4.27: Optimize our code and write the final presentation/poster/paper\\
+\end{homeworkProblem}
+%----------------------------------------------------------------------------------------
+
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

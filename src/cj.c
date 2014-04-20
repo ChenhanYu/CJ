@@ -259,6 +259,13 @@ cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   return task;
 }
 
+/* ---------------------------------------------------------------------
+ * cj_Worker
+ * ---------------------------------------------------------------------
+ *  */
+
+
+
 /* This routine is going to gather all required memory. It will lock the
  * distribution all required object and will release them after the execution
  * is finished. */
@@ -326,6 +333,7 @@ int cj_Worker_prefetch_d2h (cj_Worker *worker) {
   return 1;
 }
 
+//host to device
 int cj_Worker_prefetch_h2d (cj_Worker *worker) {
   cj_Object *arg_I = NULL;
   cj_Schedule *schedule = &cj.schedule;
@@ -566,6 +574,11 @@ void *cj_Worker_entry_point (void *arg) {
   return NULL;
 }
 
+/* ---------------------------------------------------------------------
+ * cj_Queue
+ * ---------------------------------------------------------------------
+ *  */
+
 void cj_Queue_begin() {
   cj_queue_enable = TRUE;
   cj_Object *vertex, *now;
@@ -632,7 +645,7 @@ void cj_Init(int nworker) {
     if (!cj.worker[i]) cj_error("Init", "memory allocation failed.");
   }
 
-  cj.ngpu = 3;
+  cj.ngpu = GPU_NUM;
   cj.nmic = 0;
   for (i = 0; i < cj.ngpu; i++) {
     cj.device[i] = cj_Device_new(CJ_DEV_CUDA, i); 
