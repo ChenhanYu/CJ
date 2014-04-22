@@ -66,6 +66,7 @@ void cj_Graph_edge_add (cj_Object *edge) {
   cj_Dqueue_push_tail(graph->edge, edge);
 }
 
+//Output the dot file
 void cj_Graph_output_dot () {
   if (!graph) cj_Graph_error("Graph_output_dot", "Need initialization!");
   if (cj_Dqueue_get_size(graph->edge) > 0) {

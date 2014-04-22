@@ -6,11 +6,14 @@
 #include "cj_Macro.h"
 #include "cj.h"
 #include "cj_Graph.h"
-#include "cj_Object.h"
 #include "cj_Device.h"
 #include "cj_Sparse.h"
 #include "cj_Profile.h"
 
+
+#include "cj_Object.h"
+
+/*error information for debugging*/
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
@@ -153,8 +156,8 @@ void cj_Dqueue_clear(cj_Object *object) {
   }
 }
 
+/* This routine only duplicate the basic info. No dynamic memory allocation. */
 void cj_Matrix_duplicate (cj_Object *object, cj_Object *target) {
-  /* This routine only duplicate the basic info. No dynamic memory allocation. */
   if (object->objtype != CJ_MATRIX || target->objtype != CJ_MATRIX) {
     cj_Object_error("Matrix_duplicate", "The object or target is not a matrix.");
   }

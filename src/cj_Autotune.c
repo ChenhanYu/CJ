@@ -161,11 +161,9 @@ void cj_Autotune_init () {
     cj_Autotune_pci();
 #endif
     pFile = fopen("cj_autotune.bin", "wb");
-    /*
-    fwrite(autotune->cublas_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    fwrite(autotune->mkl_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    fwrite(&autotune->pci_bandwidth, sizeof(float), 1, pFile); 
-    */
+    //fwrite(autotune->cublas_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
+    //fwrite(autotune->mkl_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
+    //fwrite(&autotune->pci_bandwidth, sizeof(float), 1, pFile); 
     fwrite(autotune, sizeof(cj_Autotune), 1, pFile); 
     fclose(pFile);
   }

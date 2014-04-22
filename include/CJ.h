@@ -30,16 +30,17 @@ typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
 //run_begin, run_end, fetch_begin, fetch_end, prefetch, wait_prefetch, init, terminate
 typedef enum {CJ_EVENT_TASK_RUN_BEG, CJ_EVENT_TASK_RUN_END, CJ_EVENT_FETCH_BEG, CJ_EVENT_FETCH_END, 
   CJ_EVENT_PREFETCH, CJ_EVENT_WAIT_PREFETCH, CJ_EVENT_INIT, CJ_EVENT_TERM} cj_eveType;
-typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus;
-
+typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus; 
 struct lock_s {
   pthread_mutex_t lock;
 };
 
 struct distribution_s {
+  /* available device and CPU*/
   cj_Bool avail[MAX_DEV + 1];
   struct device_s *device[MAX_DEV + 1];
-  int line[MAX_WORKER + 1];
+  /* pipeline position */
+  int line[MAX_DEV + 1];
   struct lock_s lock;
 };
 
@@ -59,12 +60,13 @@ struct matrix_s {
   int nb;
   int offm;
   int offn;
-  /* double array of dqueue */
+  /* double array of dqueue: read set*/
   struct object_s ***rset;
-  /* double array of dqueue */
+  /* double array of dqueue: write set*/
   struct object_s ***wset;
   /* distribution */
   struct distribution_s ***dist;
+  /* the memory base for the matrix */
   struct matrix_s *base;
   char *buff;
 };
@@ -163,7 +165,9 @@ struct profile_s {
   struct object_s *worker_timeline[MAX_WORKER];
 };
 
+/* */
 struct autotune_s {
+  /* mkl_sgemm... Do we need the mkl_ssyrk routine? */
   float mkl_sgemm[AUTOTUNE_GRID];
   float mkl_dgemm[AUTOTUNE_GRID];
   float cublas_sgemm[AUTOTUNE_GRID];
@@ -182,8 +186,11 @@ struct worker_s {
 };
 
 struct schedule_s {
+  /* Since every worker has a ready_queue, why don't we put it inside the data structure of worker? */
   struct object_s *ready_queue[MAX_WORKER];
+  /* Remaining time for each worker. For performance model */
   float time_remaining[MAX_WORKER];
+  /* It seems that we don't need this to record the remaing tasks */
   int task_remaining;
   struct lock_s run_lock[MAX_WORKER];
   struct lock_s ready_queue_lock[MAX_WORKER];
@@ -204,6 +211,7 @@ struct cj_s {
 };
 
 struct cache_s {
+  /* CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} */
   cj_cacheStatus status[CACHE_LINE];
   struct object_s *obj_ptr[CACHE_LINE];
   uintptr_t dev_ptr[CACHE_LINE];

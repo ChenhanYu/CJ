@@ -124,28 +124,32 @@ void cj_Task_dependency_analysis (cj_Object *task) {
   cj_Object *set_r, *set_w;
 
   while (now) {
-    if (now->objtype == CJ_MATRIX) {
-      cj_Matrix *matrix = now->matrix;
-      set_r = matrix->base->rset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
-      set_w = matrix->base->wset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+	if (now->objtype == CJ_MATRIX) {
+	  cj_Matrix *matrix = now->matrix;
+	  /* read set */
+	  set_r = matrix->base->rset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+	  /* write set */
+	  set_w = matrix->base->wset[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
 
-      if (now->rwtype == CJ_R || now->rwtype == CJ_RW) {
-        cj_Dqueue_push_tail(set_r, cj_Object_append(CJ_TASK, (void *) task->task));
-        if (cj_Dqueue_get_size(set_w) > 0) {
-          cj_Object *now_w = set_w->dqueue->head;
-          while (now_w) {
-            if (now_w->task->id != task->task->id) {
-              cj_Object *edge = cj_Object_new(CJ_EDGE);
-              cj_Edge_set(edge, now_w, task);
-              cj_Graph_edge_add(edge);
-              cj_Task_dependency_add(now_w, task);
-              fprintf(stderr, "          %d->%d.\n", now_w->task->id, task->task->id);
-            }
-            now_w = now_w->next;
-          }
-        }
-      }
-      if (now->rwtype == CJ_W || now->rwtype == CJ_RW) {
+	  /* data dependency */
+	  if (now->rwtype == CJ_R || now->rwtype == CJ_RW) {
+		cj_Dqueue_push_tail(set_r, cj_Object_append(CJ_TASK, (void *) task->task));
+		if (cj_Dqueue_get_size(set_w) > 0) {
+		  cj_Object *now_w = set_w->dqueue->head;
+		  while (now_w) {
+			if (now_w->task->id != task->task->id) {
+			  cj_Object *edge = cj_Object_new(CJ_EDGE);
+			  cj_Edge_set(edge, now_w, task);
+			  cj_Graph_edge_add(edge);
+			  cj_Task_dependency_add(now_w, task);
+			  fprintf(stderr, "          %d->%d.\n", now_w->task->id, task->task->id);
+			}
+			now_w = now_w->next;
+		  }
+		}
+	  }
+	  /* anti dependency */
+	  if (now->rwtype == CJ_W || now->rwtype == CJ_RW) {
         cj_Object *now_r = set_r->dqueue->head; 
         while (now_r) {
           if (now_r->task->id != task->task->id) {
@@ -246,6 +250,13 @@ void cj_Task_dependencies_update (cj_Object *target) {
   task->status = DONE;
 }
 
+
+/* ---------------------------------------------------------------------
+ * cj_Worker
+ * ---------------------------------------------------------------------
+ *  */
+
+
 cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   cj_Schedule *schedule = &cj.schedule;
   cj_Object *task = cj_Dqueue_pop_head(schedule->ready_queue[worker->id]);
@@ -259,19 +270,13 @@ cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   return task;
 }
 
-/* ---------------------------------------------------------------------
- * cj_Worker
- * ---------------------------------------------------------------------
- *  */
-
-
-
 /* This routine is going to gather all required memory. It will lock the
  * distribution all required object and will release them after the execution
  * is finished. */
 void cj_Worker_fetch (cj_Task *task, cj_Worker *worker) {
   cj_Object *arg_I = task->arg->dqueue->head;
   int i;
+  /* Iterate all the arguments of the task */
   while (arg_I) {
     if (arg_I->objtype == CJ_MATRIX) {
       cj_Matrix       *matrix = arg_I->matrix;
@@ -280,14 +285,18 @@ void cj_Worker_fetch (cj_Task *task, cj_Worker *worker) {
       
       int dest = worker->device_id + 1;
 
+	  /* Acquire the distribution lock */
       cj_Lock_acquire(&dist->lock);
       {
+		/* if the matrix has no latest copy on this worker */
         if (dist->avail[dest] == FALSE) {
+		  /* if there is no copy in the main memory of CPU */
           if (dist->avail[0] == FALSE) {
             for (i = 1; i < MAX_DEV + 1; i++) {
               if (dist->avail[i] == TRUE) {
                 /* Sync Write Back */
                 fprintf(stderr, RED "(%d) Cache_writeback: %d\n" NONE, worker->device_id, i - 1);
+				/* pick a location from the distribution and write back */
                 cj_Cache_write_back(dist->device[i], dist->line[i], arg_I);
                 dist->avail[0] = TRUE;
                 break;
@@ -420,7 +429,9 @@ cj_Worker *cj_Worker_new (cj_devType devtype, int id) {
   return worker;
 }
 
+/* performance model. Estimate the time cost for both computation and communication of CPU and GPU */
 float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
+  /* Here it is very similar to a construct function in C++/Java. We implement in C */
   cj_Autotune *model = cj_Autotune_get_ptr(); 
   float comp_cost = 0.0, comm_cost = 0.0, cost = 0.0;
 
@@ -438,8 +449,10 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
 
           int dest = worker->device_id + 1;
 
+		  /* if the argument is not available on the device */
           if (dist->avail[dest] == FALSE) {
             comm_cost = model->pci_bandwidth;
+			/* if the argument is not available on the host */
             if (dist->avail[0] == FALSE) {
               comm_cost = 2*(model->pci_bandwidth);
             }
@@ -461,6 +474,7 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
 
           int dest = worker->device_id + 1;
 
+		  /* if the argument is not available on the host */
           if (dist->avail[dest] == FALSE) {
             comm_cost = model->pci_bandwidth;
           }
@@ -485,10 +499,13 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   //fprintf(stderr, "%s\n", task->name);
 
 
+  /* fetch... the core of execute algorithm */
   cj_Profile_worker_record(worker, CJ_EVENT_FETCH_BEG);
   cj_Worker_fetch(task, worker);
   cj_Profile_worker_record(worker, CJ_EVENT_FETCH_END);
   //fprintf(stderr, "before wait prefetch\n");
+  
+  /* prefetch.... */
   int d2h = cj_Worker_prefetch_d2h(worker);
   int h2d = cj_Worker_prefetch_h2d(worker);
   //fprintf(stderr, "after prefetch\n");
@@ -496,11 +513,14 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
   //fprintf(stderr, "after fetch\n");
   
   /* Change cache status here. */
+  /* Kernel function is here... */
   cj_Profile_worker_record(worker, CJ_EVENT_TASK_RUN_BEG);
   (*task->function)((void *) task);
   cj_Worker_wait_execute(worker);
   cj_Profile_worker_record(worker, CJ_EVENT_TASK_RUN_END);
 
+
+  /* if did prefech or write back, then update the distribution of those prefectched objects*/
   cj_Object *arg_I = task->arg->dqueue->head;
   while (arg_I) {
     if (arg_I->objtype == CJ_MATRIX) {
@@ -552,6 +572,7 @@ void *cj_Worker_entry_point (void *arg) {
   }
 
   condition = 1;
+  /* the worker will keep working .... */
   while (condition) {
     cj_Object *task;
 
@@ -565,6 +586,7 @@ void *cj_Worker_entry_point (void *arg) {
     if (task) {
       committed = cj_Worker_execute(task->task, me);
 
+	  /* if commit then update dependencies */
       if (committed) {
         cj_Task_dependencies_update(task);
       }
