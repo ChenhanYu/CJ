@@ -997,7 +997,7 @@ void cj_Syrk_ln_blk_var2 (cj_Object *A, cj_Object *C) {
 
   while ( AT->matrix->m < A->matrix->m ){
 
-	b = min(AB->matrix->n, BLOCK_SIZE);
+	b = min(AB->matrix->m, BLOCK_SIZE);
 
     cj_Matrix_repart_2x1_to_3x1( AT,                A0, 
                               /* ** */           /* ** */
@@ -1157,10 +1157,10 @@ void cj_Trsm_rlt_blk_var3 (cj_Object *A, cj_Object *B)
 			*BB,              *B1,
 			*B2;
 
-  fprintf(stderr, "    Trsm_rlt_blk_var3 (A(%d, %d), B(%d, %d)): \n", 
+  fprintf(stderr, "  Trsm_rlt_blk_var3 (A(%d, %d), B(%d, %d)): \n", 
 	  A->matrix->m, A->matrix->n,
 	  B->matrix->m, B->matrix->n);
-  fprintf(stderr, "    {\n");
+  fprintf(stderr, "  {\n");
 
   BT = cj_Object_new(CJ_MATRIX); B0 = cj_Object_new(CJ_MATRIX);
   BB = cj_Object_new(CJ_MATRIX); B1 = cj_Object_new(CJ_MATRIX);
@@ -1172,7 +1172,7 @@ void cj_Trsm_rlt_blk_var3 (cj_Object *A, cj_Object *B)
                             BB,            0, CJ_TOP );
 
   while ( BT->matrix->m < B->matrix->m ){
-	b = min(BT->matrix->m, BLOCK_SIZE);
+	b = min(BB->matrix->m, BLOCK_SIZE);
 
     cj_Matrix_repart_2x1_to_3x1( BT,                B0, 
                         /* ** */            /* ** */
@@ -1187,7 +1187,7 @@ void cj_Trsm_rlt_blk_var3 (cj_Object *A, cj_Object *B)
     //                   FLA_Cntl_sub_trsm( cntl ) );
 
 
-    cj_Trsm_rlt_task(A, B);
+    cj_Trsm_rlt_task(A, B1);
  
 
     /*------------------------------------------------------------*/
@@ -1213,10 +1213,10 @@ void cj_Trsm_rlt_blk_var2 (cj_Object *A, cj_Object *B)
 
   cj_Object *BL,    *BR,       *B0,  *B1,  *B2;
 
-  fprintf(stderr, "    Trsm_rlt_blk_var2 (A(%d, %d), B(%d, %d)): \n", 
+  fprintf(stderr, "Trsm_rlt_blk_var2 (A(%d, %d), B(%d, %d)): \n", 
 	  A->matrix->m, A->matrix->n,
 	  B->matrix->m, B->matrix->n);
-  fprintf(stderr, "    {\n");
+  fprintf(stderr, "{\n");
 
   ATL = cj_Object_new(CJ_MATRIX); ATR = cj_Object_new(CJ_MATRIX); 
   A00 = cj_Object_new(CJ_MATRIX); A01 = cj_Object_new(CJ_MATRIX); A02 = cj_Object_new(CJ_MATRIX);
@@ -1238,7 +1238,7 @@ void cj_Trsm_rlt_blk_var2 (cj_Object *A, cj_Object *B)
 
   while ( ATL->matrix->m < A->matrix->m ){
 
-	b = min(ATL->matrix->m, BLOCK_SIZE);
+	b = min(ABR->matrix->m, BLOCK_SIZE);
 
     cj_Matrix_repart_2x2_to_3x3( ATL, /**/ ATR,       A00, /**/ A01, A02,
                               /* ************* */   /* ******************** */
@@ -1255,8 +1255,10 @@ void cj_Trsm_rlt_blk_var2 (cj_Object *A, cj_Object *B)
     //FLA_Trsm_internal( FLA_RIGHT, FLA_LOWER_TRIANGULAR, FLA_TRANSPOSE, diagA,
     //                   FLA_ONE, A11, B1,
     //                   FLA_Cntl_sub_trsm( cntl ) );
+	
+	//fprintf(stderr, "B1(\n");
 
-	cj_Trsm_rlt_blk_var3(B1, A11);
+	cj_Trsm_rlt_blk_var3(A11, B1);
 
 
     /* B2 = B2 - B1 * A21'; */
@@ -1279,7 +1281,7 @@ void cj_Trsm_rlt_blk_var2 (cj_Object *A, cj_Object *B)
 
   }
 
-  fprintf(stderr, "  }\n");
+  fprintf(stderr, "}\n");
 }
 
 

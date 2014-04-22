@@ -12,4 +12,6 @@
 *.o
 *.bin
 *tags
+*.swp
+*bak*
 
