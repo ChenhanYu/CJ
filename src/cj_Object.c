@@ -688,6 +688,55 @@ void cj_Matrix_delete (cj_Matrix *matrix) {
 
 }
 
+
+void cj_Matrix_set_lowertril_one (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
+  cj_Matrix *matrix = object->matrix;
+  if (matrix->m != matrix->n) cj_Object_error("Matrix_set_identity", "The matrix is not a sqaure matrix.");
+
+  int i, j;
+  
+  for (j = 0; j < matrix->n; j++) {
+    for (i = 0; i < matrix->m; i++) {
+      if (matrix->eletype == CJ_SINGLE) {
+        ((float *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i >= j) ((float *) (matrix->buff))[i + j*matrix->m] = 1.0;
+      }
+      else {
+        ((double *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i >= j) ((double *) (matrix->buff))[i + j*matrix->m] = 1.0;
+      }
+    }
+  }
+
+}
+
+
+
+void cj_Matrix_set_2identity (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
+  cj_Matrix *matrix = object->matrix;
+  if (matrix->m != matrix->n) cj_Object_error("Matrix_set_identity", "The matrix is not a sqaure matrix.");
+
+  int i, j;
+  
+  for (j = 0; j < matrix->n; j++) {
+    for (i = 0; i < matrix->m; i++) {
+      if (matrix->eletype == CJ_SINGLE) {
+        ((float *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i == j) ((float *) (matrix->buff))[i + j*matrix->m] = 2.0;
+      }
+      else {
+        ((double *) (matrix->buff))[i + j*matrix->m] = 0.0;
+        if (i == j) ((double *) (matrix->buff))[i + j*matrix->m] = 2.0;
+      }
+    }
+  }
+
+}
+
 void cj_Matrix_set_identity (cj_Object *object) {
   if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
   if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");

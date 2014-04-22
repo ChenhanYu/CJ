@@ -37,14 +37,14 @@
 \begin{frontmatter}
   \title{General Linear Algebra Computing Environment}
   \author[a01]{Chenhan D. Yu} \ead{chenhan@cs.utexas.com}
+  \author[a01]{Jianyu Huang} \ead{jianyu@cs.utexas.com}
   \address[a01]{Department of Computer Science, University of Texas at Austin}
 
   \begin{abstract}
   GLACE is a runtime system freeing user from writing multiple parallel APIs, 
   learning parallel algorithms, yet at the same time still fully exploit the computing power 
   of heterogeneous systems.
-  
-  
+   
   After the Moore law broke, architectures of modern computers become much more 
   complex than before. The performance of sequential code is no longer portable and 
   scalable on new architectures, and the burden again goes back to programmers. 
@@ -79,6 +79,8 @@
   \end{keyword}
 \end{frontmatter}
 
+\linenumbers \linenumberdisplaymath
+
 % ====================================================================
 \section{Introduction}
 % ====================================================================
@@ -111,6 +113,32 @@
   In GLACE, the analysis phase will be performed after the task generating by 
   using Algorithm ~\ref{alg:dep}. The algorithm is a simplified version of the dependency 
   analysis in \cite{}.     
+
+
+  %Especially for the submatrix part...
+
+
+  dependecy analysis
+
+
+  Ernie Chan
+
+
+  flow dependency
+  anti dependency
+
+
+  focus
+
+
+
+
+
+
+
+
+
+
 
 % ====================================================================
 \section{Data Distribution and Software Cache}
@@ -192,9 +220,6 @@ the elimination tree\\
 % ====================================================================
   GLACE scheduler is responsible for queuing ready tasks to workers' ready queue. 
 
-
-\begin{enumerate}
-\item
 \begin{figure}
   \centering
   \includegraphics[width=6.0in]{output1.eps} 
@@ -208,94 +233,190 @@ the elimination tree\\
   \label{fig:dep2}
 \end{figure}
 
+\begin{figure}
+\begin{minipage} [t] {0.5\textwidth}
+  \includegraphics[width=3.2in]{timeline1.eps} 
+  \caption{Execution timeline without prefetching, green(communication), red(computation)}
+  \label{fig:timeline1}
+\end{minipage}
+\begin{minipage} [t] {0.5\textwidth}
+  \includegraphics[width=3.2in]{timeline2.eps} 
+  \caption{Execution timeline without prefetching, green(communication), red(computation)}
+  \label{fig:timeline2}
+\end{minipage}
+\end{figure}
+
 \begin{algorithm}
 \caption{{\bf (estimate).} GLACE cost estimation algorithm}
-\label{alg:est}
-\begin{algorithmic}
-\STATE Input: task, worker
+\label{alg:estimate}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE C = estimate(worker, task)
+\STATE Input: worker, task
 \STATE Output: C
 \STATE $CM = 0$, $CP = 0$
-\IF {the worker carries a device}
-  \STATE CP = model(worker.device, task, arguments)
+\IF {worker.device}
+  \STATE $CP = model(worker.device, task, arguments)$
   \FOR {each argument of the task}
-    \IF {the argument is not available on the device}
-      \STATE $CM += bandwidth(argument)$
-      \IF {the argument is not available on the host}
-        \STATE $CM += bandwidth(argument)$
+    \IF {worker.device $\notin$ distribution}
+      \STATE $CM \pm bandwidth(sizeof(argument))$
+      \IF {host $\notin$ distribution}
+        \STATE $CM \pm bandwidth(sizeof(argument))$
       \ENDIF
     \ENDIF
   \ENDFOR 
 \ELSE
-  \STATE CP = model(host, task, arguments)
+  \STATE $CP = model(host, task, arguments)$
   \FOR {each argument of the task}
-    \IF {the argument is not available on the host}
-      \STATE $CM += bandwidth(argument)$
+    \IF {host $\notin$ distribution}
+      \STATE $CM \pm bandwidth(sizeof(argument))$
     \ENDIF
   \ENDFOR 
 \ENDIF
 \STATE $C = CM + CP$
 \end{algorithmic}
+}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{{\bf (fetch).} GLACE fetch algorithm}
+\label{alg:fetch}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE fetch(worker, task)
+\STATE Input: worker, task
+\FOR {each argument of the task}
+  \STATE acquire the distribution lock   
+  \IF {worker.device $\notin$ distribution}
+    \IF {host $\notin$ distribution}
+      \STATE pick a source from the distribution and $cache\_writeback()$
+      \STATE distribution $=$ distribution $\cup$ host
+    \ENDIF
+    \IF {worker.device}
+      \STATE $cache\_fetch()$
+      \STATE distribution $=$ distribution $\cup$ worker.device
+    \ENDIF
+  \ENDIF
+  \STATE acquire the lock of device cache
+  \STATE release the distribution lock
+\ENDFOR
+\end{algorithmic}
+}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{{\bf (prefetch).} GLACE prefetch algorithm}
+\label{alg:prefetch}
+{\footnotesize
+\begin{minipage} [t] {0.4\textwidth}
+\begin{algorithmic} [1]
+\STATE $d2h = prefetch\_d2h(worker)$
+\STATE Input: worker
+\STATE Output: d2h
+\IF {! isempty(worker.writeback)}
+  \STATE object = head(worker.writeback)
+  \IF {host $\notin$ distribution}
+    \STATE $cache\_async\_writeback()$
+    \STATE return TRUE
+  \ENDIF
+\ENDIF
+\STATE return FALSE
+\end{algorithmic}
+\end{minipage}
+\begin{minipage} [t] {0.6\textwidth}
+\begin{algorithmic} [1]
+\STATE $h2d = prefetch\_d2h(worker)$
+\STATE Input: worker
+\STATE Output: h2d 
+\IF {! isempty(worker.readyqueue)}
+  \STATE task $=$ head(worker.readyqueue)
+  \FOR {each argument of the task}
+    \IF {worker.device $\notin$ distribution}
+      \IF {host $\in$ distribution}
+        \STATE $cache\_async\_fetch()$
+        \STATE acquire the distribution lock
+        \STATE distribution $=$ distribution $\cup$ worker.device
+        \STATE release the distribution lock
+      \ENDIF
+    \ENDIF
+  \ENDFOR
+\ENDIF
+\end{algorithmic}
+\end{minipage}
+}
 \end{algorithm}
 
 \begin{algorithm}
 \caption{{\bf (execute).} GLACE execute algorithm}
-\label{alg:exe}
-\begin{algorithmic}
-\STATE Input: task, worker
-\FOR {each argument of the task}
-  \STATE acquire the distribution lock
-  \IF {the argument is a matrix}
-    \IF {this matrix has no latest copy on this worker}
-      \IF {there is no copy in the main memory}
-        \STATE pick a location from the distribution and writeback();
-        \STATE update the distribution;
-      \ENDIF
-      \IF {the worker carries a device}
-        \STATE fetch();
-        \STATE update the distribution;
-      \ENDIF
-      \STATE lock the device cache from being replaced; 
-    \ELSE
-      \STATE lock the device cache from being replaced; 
-    \ENDIF
-  \ENDIF
+\label{alg:execute}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE $execute(worker, task)$
+\STATE Input: worker, task
+\STATE $fetch(worker, task)$
+\STATE d2h $=$ $prefetch\_d2h(worker)$
+\STATE h2d $=$ $prefetch\_h2d(worker)$
+\STATE $kernel(arguments)$
+\FOR {each W or RW type argument of the task}
+  \STATE distribution $=$ worker.device
+  \STATE $push\_tail(worker.writeback)$  
 \ENDFOR
-\IF {the ready queue is non empty}
-  \STATE prefetch those arguments in the main memory
-\ENDIF
-\IF {the write back queue is non empty}
-  \STATE pop an object from the head
-  \STATE writeback() 
-\ENDIF
-\STATE kernel(arguments)
-\IF {did prefetch or write back}
-  \STATE update the distribution of those prefetched objects
-\ENDIF
+\STATE $wait\_prefetch(worker, d2h, h2d)$
 \end{algorithmic}
+}
 \end{algorithm}
+
+\begin{algorithm}
+\caption{{\bf (update).} GLACE dependencies update algorithm}
+\label{alg:update}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE $update(task)$
+\STATE Input: task
+\STATE
+\end{algorithmic}
+}
+\end{algorithm}
+
+
+\begin{algorithm}
+\caption{{\bf (update).} GLACE dependencies analysis algorithm}
+\label{alg:update}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE $update(task)$
+\STATE Input: task
+\STATE
+\end{algorithmic}
+}
+\end{algorithm}
+
+
+
+
+
 
 \begin{algorithm}
 \caption{{\bf (worker).} GLACE worker algorithm}
 \label{alg:worker}
-\begin{algorithmic}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE $worker(worker)$
 \STATE Input: worker
-\WHILE {ready queue is non-empty}
-  \STATE lock the ready queue;
-  \STATE task = dqueue(worker);
-  \STATE unlock the ready queue;
+\WHILE {! isempty(worker.readyqueue)}
+  \STATE acquire the readyqueue lock
+  \STATE task $=$ $pop\_head(worker.readyqueue)$
+  \STATE release the readyqueue lock
   \IF {task}
-    \STATE prefetch();
-    \STATE commit = execute(task);
+    \STATE commit $=$ $execute(worker, task)$;
     \IF {commit}
-      \STATE update dependencies;
+      \STATE update dependencies
     \ENDIF
-    \STATE wait until prefetch() has done;
   \ENDIF
 \ENDWHILE
 \end{algorithmic}
+}
 \end{algorithm}
-
-\end{enumerate}
 
 %----------------------------------------------------------------------------------------
 

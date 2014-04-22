@@ -32,7 +32,8 @@ int main () {
   cj_Matrix_set(C, mc, nc);
   cj_Matrix_set(D, md, nd);
 
-  cj_Matrix_set_identity(A);
+  cj_Matrix_set_lowertril_one(A);
+  //cj_Matrix_set_2identity(A);
   cj_Matrix_set_identity(B);
   cj_Matrix_set_identity(C);
 
@@ -41,13 +42,13 @@ int main () {
 
   sleep(2);
 
-  cj_Matrix_distribution_print(C);
+  cj_Matrix_distribution_print(B);
   //cj_Object_acquire(C);
 
   sleep(2);
 
-  cj_Matrix_distribution_print(C);
-  cj_Matrix_print(C);
+  cj_Matrix_distribution_print(B);
+  cj_Matrix_print(B);
 
   cj_Term();
 
