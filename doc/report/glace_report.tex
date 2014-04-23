@@ -124,19 +124,37 @@
   Ernie Chan
 
 
-  flow dependency
-  anti dependency
+  True(Flow) dependency
+  Flow dependencies occur where a block is read by one task after it is written by a previous task (read after write).
+  e.g.
+  S1: A := B + C;
+
+
+  Anti-dependency
+  Anti-dependencies creates the scenarios when one task write a block after another task read the same task. (write after read).
+  e.g.
+
+  Output dependency
+  Output dependency 
 
 
   focus
 
+  flow dependency notation
+
+
+  The figure is too ugly. I think we may need to add the subscript to the symbol so that it looks a little "acceptable".
+
+  Instruction Scheduling
+
+
+  Difference with Ernie Chan's work.
 
 
 
 
-
-
-
+  Constructing a DAG
+ 
 
 
 
@@ -385,8 +403,46 @@ the elimination tree\\
 {\footnotesize
 \begin{algorithmic} [1]
 \STATE $update(task)$
-\STATE Input: task
-\STATE
+\STATE Input: Linear algebra algorithm S, block size b
+\STATE Output: Directed acyclic graph (V, E)
+\STATE V :=  empty set; E := empty set;
+for each matrix A \in R^{m \times n}
+  for i from 0 to m/b do
+    for j from 0 to n/b do
+	  A(i,j) -> reset = empty set; A(i,j) -> wset = empty set;
+	end for
+  end for
+end for
+
+A_ij   represents the ith in row, jth in column submatrix???? blocks
+for each \textbf{task} in S
+Store task into the Vertex Set: V: = V \union {task}
+for each A(i,j) read / rw by task do
+A(i,j)->rset :=  A(i,j)->rset \union {task}
+if (A(i,j)->wset != empty_set) 
+  for each element t' in A(i,j)->wset 
+  	if task != t' then 
+		add edge E:= E \union {t' -> t}
+	end if
+  end for
+end if
+end for
+
+
+for each A(i,j) write / rw by task do
+if (A(i,j)->rset != empty_set)
+  for each element t' in A(i,j)->rset
+    if task != t' then
+		add edge E:= E \union {t' -> t}
+	end if
+  end for
+end if
+end for
+
+
+%Submatrix -> 
+
+
 \end{algorithmic}
 }
 \end{algorithm}
