@@ -5,6 +5,7 @@ D_CC_SRC = cj.c \
 		   cj_Object.c \
 		   cj_Graph.c \
 		   cj_Blas.c \
+		   cj_Lapack.c \
 		   cj_Sparse.c \
 		   cj_Device.c \
 		   cj_Autotune.c \

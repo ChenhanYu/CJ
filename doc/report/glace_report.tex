@@ -105,7 +105,8 @@
 % ====================================================================
 \section{Dependency Analysis}
 % ====================================================================
-  GLACE allows users to write their program in a sequential fashion and performs run-time
+
+GLACE allows users to write their program in a sequential fashion and performs run-time
   dependency analysis to exploit parallelism. Top level routines will be partitioned into smaller
   tasks that can have 3 different kinds of dependency: write after read (WAR), read after
   write (RAW), write after write (WAW). Two tasks with one of these dependencies can't 
@@ -117,25 +118,34 @@
 
   %Especially for the submatrix part...
 
-
   dependecy analysis
 
 
   Ernie Chan
 
 
-  True(Flow) dependency
-  Flow dependencies occur where a block is read by one task after it is written by a previous task (read after write).
-  e.g.
-  S1: A := B + C;
+  \subsection{Category of dependency for Matrix operations}
+  \begin{enumerate}
+	\item True(Flow) dependency\\
+  Flow dependencies occur where a block is read by one task after it is written by a previous task (read after write).\\
+  e.g.\\
+  S1: A := B + C;\\
+  S2: D := A + E;\\
 
 
-  Anti-dependency
-  Anti-dependencies creates the scenarios when one task write a block after another task read the same task. (write after read).
-  e.g.
+\item Anti-dependency\\
+  Anti-dependencies creates the scenarios when one task write a block after another task read the same task (write after read).\\
+  e.g.\\
 
-  Output dependency
-  Output dependency 
+
+
+\item Output dependency\\
+  Output dependencies take place where the output block of one operation is overwritten by subsequent computation (write after write).\\
+
+
+  To simplify the dependence analysis, one of our assumption is that the operations must first read the result of one operation before overwritting it. Therefore, we only need to concentrate on flow and anti-dependencies, where output dependencies are shown as flow dependencies.[Ernie's paper]\\
+
+  \end{enumerate}
 
 
   focus
@@ -145,34 +155,58 @@
 
   The figure is too ugly. I think we may need to add the subscript to the symbol so that it looks a little "acceptable".
 
-  Instruction Scheduling
 
 
   Difference with Ernie Chan's work.
 
+  \subsection{Constructing a DAG}
+
+  In Alg[], we present the alogirhm for dynamically detecting data dependencies and constructing a DAG for dependencies relations between tasks.\\
 
 
-
-  Constructing a DAG
  
-
 
 
 % ====================================================================
 \section{Data Distribution and Software Cache}
 % ====================================================================
   In order to increase the data reuse rate and reduce the overhead of communication, GLACE
-  implements a software cache to manage device memory. We use IMP model \cite{} to 
-  describe an distribution of an object's location. This enable GLACE to analysis data affinity
-  between tasks easily and also reduce the overhead of cache table looking up.
+  implements a software cache to manage the device memory, allowing automatic data reuse. 
+  Instead of the traditional cache lookup table, we use IMP model \cite{} to describe the distribution 
+  of an object's locations. This enable GLACE to analysis data affinity between tasks easily and 
+  also reduce the overhead of cache table looking up. In the following paragraph, we will first 
+  introduce concept of distribution, and then explain how to implement the software cache with
+  the distribution.    
   
-  Although GLACE is targeting on shared memory system, yet we treat the device memory
-  as a kind of distributed memory. An object's distribution can only have one copy in the 
-  host memory or on the certain device, or can have several copies across the host and
-  devices. For example, if the system has 4 devices, there $(4+1)^2 - 1$ possible distributions.
-  Here, we further assume that each device has no connection between each other. Thus,
-  there are only $4 + 4^2$ possible distributions, since it's impossible that 2 devices have 
-  the object, but it isn't in the host memory. 
+  An object's distribution D(obj) represents the data locality in the distributed memory that maps 
+  an object into a subset of $2^{nd+1}$, and the invertible function $F_{i,j}$ that transforms 
+  distribution written in the form $D_j = F_{i, j}(D_i)$ representing 
+  the required communication for redistributing $D_i$ into $D_j$. Since $F_{i, j}$ is invertible,
+  $F_{i, j}^{-1} = F_{j, i}$ which is useful while the output distribution is given.  
+  
+  In GLACE, the host memory is the main memory and we can treat device memories as a 
+  layer of cache hierarchy. Every devices can directly communication with the host memory 
+  yet the communication between devices is indirect. For example, $D_1(obj) = \{d_1\}$ and 
+  we would like the new distribution to include $d_2$. It is impossible for the new distribution
+  to be $D_2(obj) = \{d_1, d_2\}$, since the only way to have a replica on $d_2$ is to 
+  first copy the object back to the host memory, and then again copy the memory to $d_2$.
+  In this case, $\{h, d_1, d_2\} = D_3(obj) = F_{1, 3}(D_1(obj))$ is the cheapest transformation
+  among all possible transformations to achieve our goal, since the data movement involved 
+  inside the transformation is the minima communication for the requirement.
+  We will discuss the corresponding device cache actions in the next paragraph and will discuss 
+  what kind of transformations is desired in the next section. 
+  
+  The corresponding cache actions such as fetching, writing back and replacing to these 
+  distribution transformation are all happening in the fetching step before the execution if 
+  there is no prefetching. Algorithm~(\ref{alg:fetch}) describes the fetching step that includes the
+  distribution transformations of all arguments of a task. For each argument, if the the device
+  isn't in the distribution, the device will try to fetch the memory from the host memory.
+  If the host memory also isn't in the distribution, the object needs to first be written back to
+  the host memory and then the device can perform fetching. 
+   
+  In this section, we introduce the concept of distributed distribution of an object and the 
+  transformation function corresponding to the communication. 
+   
     
 % ====================================================================
 \section{Heterogenous Performance Model}
@@ -190,39 +224,18 @@
     \hline
     Notation    &\ & Meaning of the notation \\  \cline{1-1}  \cline{3-3}
     {\tt nw}        && number of workers \\
+    {\tt nd}         && number of devices \\
     {\tt nt}          && number of tasks \\
-    {\tt k}           && number of supernodes \\
-    {\tt sn$_i$}  && row dimension of $F_1$ in the $i$th frontal \\
-                       && (also the number of pivoting column in a supernode) \\
-    {\tt up$_i$}  && row dimension of $F_2$ in the $i$th frontal \\
-                       && (also the number of non-pivoting column in a supernode) \\ 
     \hline
-    $SF^c$  && CPU time for symbolic factorization and elimination tree construction.\\
-    $CH^c(s)$ or $CH^g(s)$     && CPU or GPU time for Cholesky factorization $F_1=L_1L_1^{T}$ \\
-    $TR^c(s,u)$ or $TR^g(s,u)$ && CPU or GPU time for triangular solves $L_2 = F_2L_1^{-T}$\\
-    $SC^c(s, u)$ or $SC^g(s, u)$     && CPU or GPU time for updating Schur complement $U = C - L_2L_2^{T}$ \\
-    $BL^c(s,u)$ or $BL^g(s,u)$ && BLAS3 costs on CPU or GPU that\\
-    && $BL^c(s,u) = CH^c(s) + TR^c(s, u) +SC^c(s, u)$ and\\
-    && $BL^g(s,u) = CH^g(s) + TR^g(s, u) +SC^g(s, u)$\\\hline
-
-    $AD^c(s, u)$ or $AD^g(s, u)$   && CPU or GPU time for assembling (add elements) of a {\tt s}$\times${\tt (s+u)} matrix \\
-    $AS^c(u)$ or $AS^g(u)$   && CPU or GPU time for assembling of a {\tt u}$\times${\tt u} matrix \\ \hline
-
-    $CP^c_i$ or $CP^g_i$ && Computation cost of {\tt i}th frontal on CPU or GPU\\
-    $CP^c$ or $CP^g$ && Overall computation cost on CPU or GPU\\ \hline
-
-    $CM^c$ or $CM^{g}$ && Overall communication cost  on CPU or GPU\\
-    $ \widehat{CM}^{g}$ && Overall communication cost  on GPU by using asynchronized memory copy. \\
-    $CM^A$ or $CM^{ET}$ && Communication cost of the coefficient matrix $A$ or
-the elimination tree\\
-
-    {\tt $V_{cg}$} && Communication efficiency (bytes/sec) between CPU and GPU \\ \hline
-
-    ${\tt gpu_i}$ && indicator for the $i$th frontal is perform on GPU
-(${\tt gpu_i}=1$) or CPU (${\tt gpu_i}=0$)\\
-    ${\tt cpu_i}$ && indicator for the $i$th frontal is perform on GPU or CPU (${\tt cpu_i}=1-{\tt gpu_i}$)\\
-    ${\tt p_i}$ && the parent frontal of $i$th frontal\\
-    ${\tt gpu_{p_i}}$ &&  the parent of the {\tt i}th frontal is factored on GPU or not (${\tt gpu_{p_i}}=$ 1 or 0)\\
+    {\tt $h$}       && host memory \\
+    {\tt $d_i$}    && $i$th device memory \\
+    {\tt $obj$}    && distributed object \\
+    \hline
+    $D(obj)$      && object's distribution \\
+    $F(D)$        && distribution transformation function \\
+    \hline
+    $CM$          && communication cost \\
+    $CP$           && computation cost \\
     \hline
   \end{tabular}
 }
@@ -236,7 +249,118 @@ the elimination tree\\
 % ====================================================================
 \section{Scheduler}
 % ====================================================================
-  GLACE scheduler is responsible for queuing ready tasks to workers' ready queue. 
+  GLACE scheduler is responsible for dispatching ready tasks to workers' ready queue. 
+
+
+
+
+ 
+
+
+
+% ====================================================================
+\section{Evaluation}
+% ====================================================================
+
+We have implemented the $gemm$, $trsm$, $syrk$ routine in BLAS 3.\\
+
+% ====== < Routine Table > ======
+\begin{table}
+  \centering
+  {\footnotesize 
+  \begin{tabular}{l|l|l|l|l}
+    \hline
+	Routine Name    & Abbrev. & Operation & Cost & Comment\\
+	\hline
+	\underline{GE}neral \underline{M}atrix-\underline{M}atrix multiplication & GEMM & $C:=\alpha AB+\beta C$ & $2mnk$ & $C \in \mathbb{R}^{m \times n}$, $A \in \mathbb{R}^{m \times k}$, $B \in \mathbb{R}^{k \times n}$  \\
+	\hline
+    \underline{SY}mmetric \underline{R}ank-\underline{K} & SYRK &  $C:=\alpha AA^{T}+\beta C$ & $n^2k$ & $A \in \mathbb{R}^{n \times k}$, $C \in \mathbb{R}^{n \times n}$ is symmetric, stored in lower triangular part\\
+    \hline
+	\underline{TR}iangular \underline{S}olve with \underline{M}ultiple right-hand sides & TRSM &  $B:=BA^{-T}$ & $mn^2$ & $B \in \mathbb{R}^{m \times n}$, $A \in \mathbb{R}^{n \times n}$ is lower triangular\\
+	\hline
+  \end{tabular}
+}
+\caption{Routine name}
+  \label{tab:notation}
+\end{table}
+% ------  
+
+
+
+
+
+% ====================================================================
+\section{Scheduler}
+% ====================================================================
+  GLACE scheduler is responsible for dispatching ready tasks to workers' ready queue. 
+
+
+
+
+
+Evaluation part
+
+
+
+
+
+
+
+% ====================================================================
+\section{Related Work}
+% ====================================================================
+
+
+\subsection{SuperMatrix}
+In Ernie Chan’s dissertation (SuperMatrix), he has already addressed some issues we put forward in our “Goals” part. Ernie presents an application of dependence analysis and runtime data flow scheduling to matrix computations. By investigating the scheduling of matrix computations expressed as directed acyclic graphs for shared-memory parallism, Ernie provides a flexible framework for scheduling matrix computations and developed a scheduling algorithm that leverages both load balance and data locality.\\
+However, as far as we see, there are still much further work we can do, as the followings,
+\begin{itemize}
+	\item \emph{Flexible granularity for block size}\\
+		The block size for SuperMatrix is fixed, which is not flexible. We would like to make the block size adjustable in the run-time, which is a "JIT" feature.
+	\item \emph{high utilization for heterogeneous architecture}\\
+		Once using GPU, SuperMatrix cannot utilize CPU. We would like to exploit both CPU and GPU, i.e. construct a performance model to leverage the heterogeneous architecture to achieve high utilization.
+	\item \emph{ubiquitous interface for diverse libraries}\\
+		SuperMatrix is bounded with libflame library. We would like to provide ubiquitous interface for diverse libraries, instead of being restricted to libflame.
+	\item \emph{broad support for multiple operations}\\
+		SuperMatrix only supports dense linear algebra. We will try to support other operations such as sparse matrix computations.
+\
+\end{itemize}
+
+\subsection{Instruction Scheduling}
+
+
+
+
+% ====================================================================
+\section{References}
+% ====================================================================
+
+	%%biblatex
+	%%\renewcommand{\refname}{\CHead{d}}
+
+\cite{lin2010application}
+\cite{guyer2004broadway}
+\cite{van2009libflame}
+\cite{vanlibflame}
+\cite{van2008science}
+
+
+
+	\renewcommand\refname{\vskip -1cm}
+	\bibliographystyle{amsplain}
+	\bibliography{glace_report}
+
+
+
+
+
+
+
+
+1. Ernie Chan's paper
+
+
+
 
 \begin{figure}
   \centering
@@ -371,10 +495,10 @@ the elimination tree\\
 \begin{algorithmic} [1]
 \STATE $execute(worker, task)$
 \STATE Input: worker, task
-\STATE $fetch(worker, task)$
+\STATE $fetch(worker, task)$ \label{ln:simple1}
 \STATE d2h $=$ $prefetch\_d2h(worker)$
 \STATE h2d $=$ $prefetch\_h2d(worker)$
-\STATE $kernel(arguments)$
+\STATE $kernel(arguments)$ \label{ln:simple2}
 \FOR {each W or RW type argument of the task}
   \STATE distribution $=$ worker.device
   \STATE $push\_tail(worker.writeback)$  
@@ -404,50 +528,50 @@ the elimination tree\\
 \begin{algorithmic} [1]
 \STATE $update(task)$
 \STATE Input: Linear algebra algorithm S, block size b
-\STATE Output: Directed acyclic graph (V, E)
-\STATE V :=  empty set; E := empty set;
-for each matrix A \in R^{m \times n}
-  for i from 0 to m/b do
-    for j from 0 to n/b do
-	  A(i,j) -> reset = empty set; A(i,j) -> wset = empty set;
-	end for
-  end for
-end for
+\STATE Output: Directed acyclic graph $(V, E)$
+\STATE $V :=  \emptyset$; $E := \emptyset$;
 
-A_ij   represents the ith in row, jth in column submatrix???? blocks
-for each \textbf{task} in S
-Store task into the Vertex Set: V: = V \union {task}
-for each A(i,j) read / rw by task do
-A(i,j)->rset :=  A(i,j)->rset \union {task}
-if (A(i,j)->wset != empty_set) 
-  for each element t' in A(i,j)->wset 
-  	if task != t' then 
-		add edge E:= E \union {t' -> t}
-	end if
-  end for
-end if
-end for
+\FOR {each matrix A $\in \mathbb{R}^{m \times n}$}
+  \FOR {$i$ from $0$ to $m/b$}
+    \FOR {$j$ from $0$ to $n/b$}
+      \STATE $A_{ij} \texttt{->} rset = \emptyset$; $A_{ij} \texttt{->} wset = \emptyset$;
+    \ENDFOR
+  \ENDFOR
+\ENDFOR
 
+%$A_{ij}$ represents the $i$th in row, $j$th in column submatrix???? blocks
+\FOR {each \textbf{task} in S}
+  \STATE {Store \textbf{task} into the Vertex Set: $V: = V \cup \{task\}$}
 
-for each A(i,j) write / rw by task do
-if (A(i,j)->rset != empty_set)
-  for each element t' in A(i,j)->rset
-    if task != t' then
-		add edge E:= E \union {t' -> t}
-	end if
-  end for
-end if
-end for
+  \FOR {each $A_{ij}$ read / rw by \textbf{task}}
+    \STATE { $A_{ij}\texttt{->}rset :=  A_{ij}\texttt{->}rset \cup \{task\}$}
+    \IF {($A_{ij}\texttt{->}wset != \emptyset$) }
+      \FOR {each element $task'$ in $A_{ij}\texttt{->}wset$}
+	    \IF {$task != task'$}
+	      \STATE {Add edge $E:= E \cup \{task' \rightarrow task\}$}
+	    \ENDIF
+      \ENDFOR
+    \ENDIF
+  \ENDFOR
 
+  \FOR {each $A_{ij}$ write / rw by \textbf{task}}
+    \IF {$A(i,j)\texttt{->}rset != \emptyset$}
+      \FOR {each element $task'$ in $A_{ij}\texttt{->}rset$}
+	    \IF {$task != task'$}
+          \STATE {Add edge $E:= E \cup \{task' \rightarrow task\}$}
+	    \ENDIF
+       \ENDFOR
+    \ENDIF 
+    \STATE { $A_{ij}\texttt{->}wset :=  A_{ij}\texttt{->}wset \cup \{task\}$}
+  \ENDFOR
 
+\ENDFOR
 %Submatrix -> 
 
 
 \end{algorithmic}
 }
 \end{algorithm}
-
-
 
 
 

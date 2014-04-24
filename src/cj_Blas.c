@@ -705,7 +705,7 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
 	  float f_mone = -1.0;
       float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
       float *c_buff = (float *) cache->dev_ptr[dist_c->line[dest]];
-      status = cublasSsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_one, a_buff, BLOCK_SIZE, 
+      status = cublasSsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_mone, a_buff, BLOCK_SIZE, 
           &f_one, c_buff, BLOCK_SIZE);
     }
     else {
@@ -714,7 +714,7 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
       double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
       double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
       fprintf(stderr, "%d, %d\n", (int) a_buff, (int) c_buff);
-      status = cublasDsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_one, a_buff, BLOCK_SIZE, 
+      status = cublasDsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_mone, a_buff, BLOCK_SIZE, 
           &f_one, c_buff, BLOCK_SIZE);
     }
     if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Syrk_ln_task_function", "cublas failure");
@@ -726,14 +726,14 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
 	  float f_mone = -1.0;
       float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;  //Row-major order???
       float *c_buff = (float *) (c->base->buff) + (c->base->m)*(c->offn) + c->offm;
-      ssyrk_("L", "N", &(c->m), &(a->n), &f_one, a_buff, &(a->base->m), &f_one, c_buff, &(c->base->m)); //Column-major order??
+      ssyrk_("L", "N", &(c->m), &(a->n), &f_mone, a_buff, &(a->base->m), &f_one, c_buff, &(c->base->m)); //Column-major order??
     }
     else {
       double f_one = 1.0;
 	  double f_mone = -1.0;
       double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
       double *c_buff = (double *) (c->base->buff) + (c->base->m)*(c->offn) + c->offm;
-      dsyrk_("L", "N", &(c->m), &(a->n), &f_one, a_buff, &(a->base->m), &f_one, c_buff, &(c->base->m));
+      dsyrk_("L", "N", &(c->m), &(a->n), &f_mone, a_buff, &(a->base->m), &f_one, c_buff, &(c->base->m));
     }
   }
 
@@ -1285,6 +1285,11 @@ void cj_Trsm_rlt_blk_var2 (cj_Object *A, cj_Object *B)
 }
 
 
+
+
+
+
+
 /* C:= alpha * A * B + beta * C, alpha = 1, beta = 1, A: m*k, B: k*n, C: m*n */
 void cj_Gemm_nn (cj_Object *A, cj_Object *B, cj_Object *C) {
   cj_Matrix *a, *b, *c;
@@ -1338,3 +1343,144 @@ void cj_Trsm_rlt (cj_Object *A, cj_Object *B) {
   cj_Trsm_rlt_blk_var2(A, B);
   cj_Queue_begin();
 }
+
+
+//void cj_Chol_l_unb_var3(cj_Object *A) {
+//  cj_Object *ATL,   *ATR,      *A00,  *a01,     *A02,
+//            *ABL,   *ABR,      *a10t, *alpha11, *a12t,
+//                               *A20,  *a21,     *A22;
+//
+//  fprintf(stderr, "Chol_l_unb_var3 (A(%d, %d)): \n", 
+//	  A->matrix->m, A->matrix->n);
+//  fprintf(stderr, "{\n");
+//
+//  ATL = cj_Object_new(CJ_MATRIX); ATR = cj_Object_new(CJ_MATRIX); 
+//  A00 = cj_Object_new(CJ_MATRIX); a01 = cj_Object_new(CJ_MATRIX); A02 = cj_Object_new(CJ_MATRIX);
+//
+//  ABL = cj_Object_new(CJ_MATRIX); ABR = cj_Object_new(CJ_MATRIX);
+//  a10t = cj_Object_new(CJ_MATRIX); alpha11 = cj_Object_new(CJ_MATRIX); a12t = cj_Object_new(CJ_MATRIX);
+//  A20 = cj_Object_new(CJ_MATRIX); a21 = cj_Object_new(CJ_MATRIX); A22 = cj_Object_new(CJ_MATRIX);
+//
+//
+//  cj_Matrix_part_2x2( A,    ATL, ATR,
+//                      ABL,  ABR,     0, 0, CJ_TL );
+//
+//  while ( ATL->matrix->m  < A->matrix->m ){
+//
+//    cj_Matrix_repart_2x2_to_3x3( ATL, /**/ ATR,       A00,  /**/ a01,     A02,
+//                        /* ************* */   /* ************************** */
+//                                                     a10t, /**/ alpha11, a12t,
+//                                 ABL, /**/ ABR,       A20,  /**/ a21,     A22,
+//                                 1, 1, CJ_BR );
+//
+//    /*------------------------------------------------------------*/
+//
+//    // alpha11 = sqrt( alpha11 )
+//    cj_Sqrt( alpha11 );
+//
+//    //if ( r_val != FLA_SUCCESS )
+//    //  return ( FLA_Obj_length( A00 ) );
+//
+//    // a21 = a21 / alpha11
+//    //FLA_Inv_scal_external( alpha11, a21 );
+//	//cj_Inv_Scal( alpha11, a21);
+//    cj_Trsm_rlt(alpha11, a21);
+//
+//    // A22 = A22 - a21 * a21'
+//    //FLA_Her_external( FLA_LOWER_TRIANGULAR, FLA_MINUS_ONE, a21, A22 );
+//	cj_Syrk_ln(a21, A22);
+//
+//    /*------------------------------------------------------------*/
+//
+//    cj_Matrix_cont_with_3x3_to_2x2( ATL, /**/ ATR,       A00,  a01,     /**/ A02,
+//                                                  a10t, alpha11, /**/ a12t,
+//                            /* ************** */  /* ************************ */
+//                              ABL, /**/ ABR,       A20,  a21,     /**/ A22,
+//                              CJ_TL );
+//  }
+//
+//
+//}
+//
+//
+//void cj_Chol_l_blk_var3(cj_Object *A )
+//{
+//  cj_Object *ATL,   *ATR,      *A00, *A01, *A02, 
+//            *ABL,   *ABR,      *A10, *A11, *A12,
+//                               *A20, *A21, *A22;
+//
+//  fprintf(stderr, "Chol_l_blk_var3 (A(%d, %d)): \n", 
+//	  A->matrix->m, A->matrix->n);
+//  fprintf(stderr, "{\n");
+//
+//  ATL = cj_Object_new(CJ_MATRIX); ATR = cj_Object_new(CJ_MATRIX); 
+//  A00 = cj_Object_new(CJ_MATRIX); A01 = cj_Object_new(CJ_MATRIX); A02 = cj_Object_new(CJ_MATRIX);
+//
+//  ABL = cj_Object_new(CJ_MATRIX); ABR = cj_Object_new(CJ_MATRIX);
+//  A10 = cj_Object_new(CJ_MATRIX); A11 = cj_Object_new(CJ_MATRIX); A12 = cj_Object_new(CJ_MATRIX);
+//  A20 = cj_Object_new(CJ_MATRIX); A21 = cj_Object_new(CJ_MATRIX); A22 = cj_Object_new(CJ_MATRIX);
+//
+//  int b;
+//
+//  cj_Matrix_part_2x2( A,    ATL, ATR,
+//                            ABL, ABR,     0, 0, CJ_TL );
+//
+//  while ( ATL->matrix->m  < A->matrix->m ){
+//
+//	b = min(ABR->matrix->m, BLOCK_SIZE);
+//
+//    cj_Matrix_repart_2x2_to_3x3( ATL, /**/ ATR,       A00, /**/ A01, A02,
+//                              /* ************* */   /* ******************** */
+//                                                      A10, /**/ A11, A12,
+//                                 ABL, /**/ ABR,       A20, /**/ A21, A22,
+//                                 b, b, CJ_BR );
+//    /*------------------------------------------------------------*/
+//
+//    // A11 = chol( A11 )
+//    //FLA_Chol_internal( FLA_LOWER_TRIANGULAR, A11,
+//    //                           FLA_Cntl_sub_chol( cntl ) );
+//	
+//	cj_Chol_l_unb_var3(A11);
+//
+//
+//    //if ( r_val != FLA_SUCCESS )
+//    //  return ( FLA_Obj_length( A00 ) + r_val );
+//	//fprintf some error message if fails?
+//
+//    // A21 = A21 * inv( tril( A11 )' )
+//    cj_Trsm_rlt(A11, A21);
+//
+//    // A22 = A22 - A21 * A21'
+//	cj_Syrk_ln(A21, A22);
+//
+//    /*------------------------------------------------------------*/
+//
+//    cj_Matrix_cont_with_3x3_to_2x2( ATL, /**/ ATR,       A00, A01, /**/ A02,
+//                                                     A10, A11, /**/ A12,
+//                            /* ************** */  /* ****************** */
+//                              ABL, /**/ ABR,       A20, A21, /**/ A22,
+//                              CJ_TL );
+//  }
+//
+//}
+//
+//
+///* A -> LL^T, A is SPD matrix. A: n*n. NEED to do: Symmmetry */
+//void cj_Chol_l (cj_Object *A) {
+//  cj_Matrix *a;
+//  if (!A) 
+//    cj_Blas_error("chol", "matrice hasn't been initialized yet.");
+//  if (!A->matrix)
+//    cj_Blas_error("chol", "Object types are not matrix type.");
+//  a = A->matrix;
+//  if ((a->m != a->n)) 
+//    cj_Blas_error("chol", "matrice is not a square matrix.");
+//
+//  cj_Queue_end();
+//  cj_Chol_l_blk_var3(A);
+//  cj_Queue_begin();
+//}
+
+
+
+

@@ -9,6 +9,7 @@
 #include "cj_Graph.h"
 #include "cj_Object.h"
 #include "cj_Blas.h"
+#include "cj_Lapack.h"
 #include "cj_Autotune.h"
 #include "cj_Profile.h"
 #include "cj.h"

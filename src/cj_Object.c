@@ -713,6 +713,31 @@ void cj_Matrix_set_lowertril_one (cj_Object *object) {
 }
 
 
+void cj_Matrix_set_special_chol (cj_Object *object) {
+  if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
+  if (!object->matrix) cj_Object_error("Matrix_set_identity", "The matrix hasn't been initialized yet.");
+  cj_Matrix *matrix = object->matrix;
+  if (matrix->m != matrix->n) cj_Object_error("Matrix_set_identity", "The matrix is not a sqaure matrix.");
+
+  int i, j;
+  
+  for (j = 0; j < matrix->n; j++) {
+    for (i = 0; i < matrix->m; i++) {
+      if (matrix->eletype == CJ_SINGLE) {
+        ((float *) (matrix->buff))[i + j*matrix->m] = 0.0;
+		if ((i == 0 && j == 1) || (i == 1 && j == 0) ) 
+		  ((float *) (matrix->buff))[i + j*matrix->m] = 1.0;
+		else if (i == j) ((float *) (matrix->buff))[i + j*matrix->m] = 2.0;
+      }
+      else {
+        ((double *) (matrix->buff))[i + j*matrix->m] = 0.0;
+		if ((i == 0 && j == 1) || (i == 1 && j == 0) ) 
+		  ((double *) (matrix->buff))[i + j*matrix->m] = 1.0;
+		else if (i == j) ((double *) (matrix->buff))[i + j*matrix->m] = 2.0;
+      }
+    }
+  }
+}
 
 void cj_Matrix_set_2identity (cj_Object *object) {
   if (object->objtype != CJ_MATRIX) cj_Object_error("Matrix_set", "The object is not a matrix.");
@@ -734,7 +759,6 @@ void cj_Matrix_set_2identity (cj_Object *object) {
       }
     }
   }
-
 }
 
 void cj_Matrix_set_identity (cj_Object *object) {
@@ -940,3 +964,31 @@ cj_Object *cj_Object_new (cj_objType type) {
 
   return object;
 }
+
+void cj_Sqrt(cj_Object *A) {
+  if (A->objtype != CJ_MATRIX) {
+    cj_Object_error("Sqrt", "This is not a matrix.");
+  }
+  if (A->matrix->m != 1 || A->matrix->n != 1) {
+    cj_Object_error("Sqrt", "The matrix is not a 1x1 matrix");
+  }
+
+  cj_Matrix *a;
+  a = A->matrix; 
+
+  if (a->eletype == CJ_SINGLE) {
+	float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+	if (*a_buff < 0.0F || isnan(*a_buff) ) 
+	  fprintf(stderr, "the sqrt entry is less than 0\n");
+	else
+	  *a_buff = ( float ) sqrt ( *a_buff );
+  } else {
+	double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+	if (*a_buff < 0.0 || isnan(*a_buff) ) 
+	  fprintf(stderr, "the sqrt entry is less than 0\n");
+	else
+	  *a_buff = ( double ) sqrt ( *a_buff );
+  }
+
+}
+
