@@ -108,7 +108,7 @@ void cj_Chol_l_task(cj_Object *A) {
   */   
 
   task = cj_Object_new(CJ_TASK);
-  cj_Task_set(task->task, &cj_Chol_l_task_function);
+  cj_Task_set(task->task, CJ_TASK_POTRF, &cj_Chol_l_task_function);
 
   /* Pushing arguments. */
   cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
@@ -122,9 +122,6 @@ void cj_Chol_l_task(cj_Object *A) {
 
   cj_Task_dependency_analysis(task);
 }
-
-
-
 
 void cj_Chol_l_unb_var3(cj_Object *A) {
   cj_Object *ATL,   *ATR,      *A00,  *a01,     *A02,

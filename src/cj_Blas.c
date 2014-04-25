@@ -122,7 +122,7 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   */   
 
   task = cj_Object_new(CJ_TASK);
-  cj_Task_set(task->task, &cj_Gemm_nn_task_function);
+  cj_Task_set(task->task, CJ_TASK_GEMM, &cj_Gemm_nn_task_function);
 
   /* Pushing arguments. */
   cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
@@ -458,7 +458,7 @@ void cj_Gemm_nt_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 	 */   
 
 	task = cj_Object_new(CJ_TASK);
-	cj_Task_set(task->task, &cj_Gemm_nt_task_function);
+	cj_Task_set(task->task, CJ_TASK_GEMM, &cj_Gemm_nt_task_function);
 
 	/* Pushing arguments. */
 	cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
@@ -830,7 +830,7 @@ void cj_Trsm_rlt_task(cj_Object *A, cj_Object *B) {
 
   a = A_copy->matrix; b = B_copy->matrix;
   task = cj_Object_new(CJ_TASK);
-  cj_Task_set(task->task, &cj_Trsm_rlt_task_function);
+  cj_Task_set(task->task, CJ_TASK_TRSM, &cj_Trsm_rlt_task_function);
 
   /* Pushing arguments. */
   cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);
@@ -842,9 +842,10 @@ void cj_Trsm_rlt_task(cj_Object *A, cj_Object *B) {
 
   /* Setup task name. */
   snprintf(task->task->name,  64, "Trsm_rlt%d", task->task->id);
-  snprintf(task->task->label, 64, "A%d%d*B%d%d^-t", 
-      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
-      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE );
+  snprintf(task->task->label, 64, "B%d%d=B%d%d*A%d%d^-t", 
+      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
+      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
+      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE );
 
   cj_Task_dependency_analysis(task);
 }
@@ -862,7 +863,7 @@ void cj_Syrk_ln_task(cj_Object *alpha, cj_Object *A, cj_Object *beta, cj_Object 
 
   a = A_copy->matrix; c = C_copy->matrix;
   task = cj_Object_new(CJ_TASK);
-  cj_Task_set(task->task, &cj_Syrk_ln_task_function);
+  cj_Task_set(task->task, CJ_TASK_SYRK, &cj_Syrk_ln_task_function);
 
   /* Pushing arguments. */
   cj_Object *arg_A = cj_Object_append(CJ_MATRIX, a);

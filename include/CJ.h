@@ -15,6 +15,7 @@
 #define MAX_MIC 4
 #define GPU_NUM 0
 
+typedef enum {CJ_RED, CJ_GREEN, CJ_BLUE, CJ_YELLOW, CJ_PURPLE, CJ_ORANGE, CJ_BLACK} cj_Color;
 typedef enum {CJ_EVENT, CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CSC, CJ_SPARSE, CJ_CONSTANT} cj_objType;
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
 typedef enum {CJ_W, CJ_R, CJ_RW} cj_rwType;
@@ -25,7 +26,7 @@ typedef enum {PRI_HIGH, PRI_LOW} cj_taskPriority;
 typedef enum {TRUE, FALSE} cj_Bool;
 typedef enum {WORKER_SLEEPING, WORKER_RUNNING} cj_workerStatus;
 //do we need to add CJ_TASK_SYRK?
-typedef enum {CJ_TASK_GEMM} cj_taskType;
+typedef enum {CJ_TASK_GEMM, CJ_TASK_TRSM, CJ_TASK_SYRK, CJ_TASK_POTRF} cj_taskType;
 typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
 //run_begin, run_end, fetch_begin, fetch_end, prefetch, wait_prefetch, init, terminate
 typedef enum {CJ_EVENT_TASK_RUN_BEG, CJ_EVENT_TASK_RUN_END, CJ_EVENT_FETCH_BEG, CJ_EVENT_FETCH_END, 
@@ -129,11 +130,13 @@ struct dqueue_s {
 
 struct vertex_s {
   struct task_s *task;
+  cj_Color color;
 };
 
 struct edge_s {
   struct task_s *in;
   struct task_s *out;
+  cj_Bool war;
 };
 
 struct event_s {

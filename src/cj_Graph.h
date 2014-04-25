@@ -20,5 +20,5 @@ void cj_Vertex_set (cj_Object*, cj_Object*);
 cj_Vertex *cj_Vertex_new ();
 
 /* cj_Edge function prototypes */
-void cj_Edge_set (cj_Object*, cj_Object*, cj_Object*);
+void cj_Edge_set (cj_Object*, cj_Object*, cj_Object*, cj_Bool);
 cj_Edge *cj_Edge_new ();

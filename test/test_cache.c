@@ -11,7 +11,8 @@
 
 int main () {
   cj_Object *A, *B, *C, *D;
-  int ma = 8192, na = 8192, mb = na, nb = 8192, mc = ma, nc = nb;
+  int ma = 8, na = 8, mb = na, nb = 8, mc = ma, nc = nb;
+  //int ma = 8192, na = 8192, mb = na, nb = 8192, mc = ma, nc = nb;
   int md = ma, nd = nc;
   int nworker = 4;
   int iter;
@@ -41,11 +42,11 @@ int main () {
     cj_Gemm_nn(A, B, B);
   }
 
-  sleep(35);
+  sleep(3);
 
   cj_Profile_output_timeline();
 
-  exit(0);
+  //exit(0);
   cj_Term();
 
   return 0;

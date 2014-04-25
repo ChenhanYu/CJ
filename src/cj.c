@@ -106,7 +106,8 @@ cj_Task *cj_Task_new () {
   return task;
 }
 
-void cj_Task_set (cj_Task *task, void (*function)(void*)) {
+void cj_Task_set (cj_Task *task, cj_taskType tasktype, void (*function)(void*)) {
+  task->tasktype = tasktype;
   task->function = function;
 }
 
@@ -140,7 +141,7 @@ void cj_Task_dependency_analysis (cj_Object *task) {
 		  while (now_w) {
 			if (now_w->task->id != task->task->id) {
 			  cj_Object *edge = cj_Object_new(CJ_EDGE);
-			  cj_Edge_set(edge, now_w, task);
+			  cj_Edge_set(edge, now_w, task, FALSE);
 			  cj_Graph_edge_add(edge);
 			  cj_Task_dependency_add(now_w, task);
 			  fprintf(stderr, "          %d->%d.\n", now_w->task->id, task->task->id);
@@ -155,7 +156,7 @@ void cj_Task_dependency_analysis (cj_Object *task) {
         while (now_r) {
           if (now_r->task->id != task->task->id) {
             cj_Object *edge = cj_Object_new(CJ_EDGE);
-            cj_Edge_set(edge, now_r, task);
+            cj_Edge_set(edge, now_r, task, TRUE);
             cj_Graph_edge_add(edge);
             cj_Task_dependency_add(now_r, task);
             fprintf(stderr, "          %d->%d. Anti-dependency.\n", now_r->task->id, task->task->id);
