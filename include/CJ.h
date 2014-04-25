@@ -99,6 +99,7 @@ struct task_s {
   cj_taskType tasktype;
   struct worker_s *worker;
   char name[64];
+  char label[64];
   int id;
   struct lock_s tsk_lock;
   float cost;

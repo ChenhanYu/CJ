@@ -136,11 +136,11 @@ void cj_Gemm_nn_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
   cj_Dqueue_push_tail(task->task->arg, arg_C);
 
   /* Setup task name. */
-  snprintf(task->task->name, 64, "Gemm_nn%d_A_%d_%d_B_%d_%d_C_%d_%d", 
-      task->task->id,
+  snprintf(task->task->name,  64, "Gemm_nn%d", task->task->id);
+  snprintf(task->task->label, 64, "C%d%d-=A%d%d*B%d%d",
+      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
-      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
-      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
+      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE );
 
   cj_Task_dependency_analysis(task);
 }
@@ -472,11 +472,11 @@ void cj_Gemm_nt_task(cj_Object *alpha, cj_Object *A, cj_Object *B, cj_Object *be
 	cj_Dqueue_push_tail(task->task->arg, arg_C);
 
 	/* Setup task name. */
-	snprintf(task->task->name, 64, "Gemm_nt%d_A_%d_%d_B_%d_%d_C_%d_%d", 
-			 task->task->id,
-			 a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
-			 b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE,
-			 c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
+  snprintf(task->task->name,  64, "Gemm_nt%d", task->task->id);
+  snprintf(task->task->label, 64, "C%d%d-=A%d%d*B%d%d'",
+      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE,
+      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
+      b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE );
 
 	cj_Task_dependency_analysis(task);
 }
@@ -841,8 +841,8 @@ void cj_Trsm_rlt_task(cj_Object *A, cj_Object *B) {
   cj_Dqueue_push_tail(task->task->arg, arg_B);
 
   /* Setup task name. */
-  snprintf(task->task->name, 64, "Trsm_rlt%d_A_%d_%d_B_%d_%d", 
-      task->task->id,
+  snprintf(task->task->name,  64, "Trsm_rlt%d", task->task->id);
+  snprintf(task->task->label, 64, "A%d%d*B%d%d^-t", 
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
       b->offm/BLOCK_SIZE, b->offn/BLOCK_SIZE );
 
@@ -873,10 +873,11 @@ void cj_Syrk_ln_task(cj_Object *alpha, cj_Object *A, cj_Object *beta, cj_Object 
   cj_Dqueue_push_tail(task->task->arg, arg_C);
 
   /* Setup task name. */
-  snprintf(task->task->name, 64, "Syrk_ln%d_A_%d_%d_C_%d_%d", 
-      task->task->id,
+  snprintf(task->task->name, 64, "Syrk_ln%d", task->task->id); 
+  snprintf(task->task->label, 64, "C%d%d -= A%d%d*A%d%d'", 
+      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE,
-      c->offm/BLOCK_SIZE, c->offn/BLOCK_SIZE );
+      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE);
 
   cj_Task_dependency_analysis(task);
 }

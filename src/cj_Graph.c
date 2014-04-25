@@ -69,15 +69,24 @@ void cj_Graph_edge_add (cj_Object *edge) {
 //Output the dot file
 void cj_Graph_output_dot () {
   if (!graph) cj_Graph_error("Graph_output_dot", "Need initialization!");
-  if (cj_Dqueue_get_size(graph->edge) > 0) {
-    cj_Object *now = graph->edge->dqueue->head;
+  if (cj_Dqueue_get_size(graph->edge) > 0 && cj_Dqueue_get_size(graph->vertex)) {
+    cj_Object *vert_I = graph->vertex->dqueue->head;
+    cj_Object *edge_I = graph->edge->dqueue->head;
     FILE * pFile = fopen("output.dot","w");
     fprintf(pFile, "digraph CJ_GRAPH { \n");
-    while (now) {
-      cj_Task *in = now->edge->in;
-      cj_Task *out = now->edge->out;
+    fprintf(pFile, "  node [shape=none,color=orange]; \n");
+    while (vert_I) {
+      cj_Task *task = vert_I->vertex->task;
+      fprintf(pFile, "  %s[label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n", task->name);
+      fprintf(pFile, "  <TR><TD>%s</TD><TD>%d</TD></TR>\n", task->name, task->id);
+      fprintf(pFile, "  <TR><TD COLSPAN=\"2\">%s</TD></TR></TABLE>>];\n", task->label);
+      vert_I = vert_I->next;
+    }
+    while (edge_I) {
+      cj_Task *in  = edge_I->edge->in;
+      cj_Task *out = edge_I->edge->out;
       fprintf(pFile, "  %s -> %s;\n", in->name, out->name);
-      now = now->next;
+      edge_I = edge_I->next;
     }
     fprintf(pFile, "}\n");
     fclose(pFile);

@@ -116,8 +116,9 @@ void cj_Chol_l_task(cj_Object *A) {
   cj_Dqueue_push_tail(task->task->arg, arg_A);
 
   /* Setup task name. */
-  snprintf(task->task->name, 64, "Chol_l%d_A_%d_%d", 
-      task->task->id, a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE);
+  snprintf(task->task->name,  64, "Chol_l%d", task->task->id);
+  snprintf(task->task->label, 64, "A%d%d=L*L'", 
+      a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE);
 
   cj_Task_dependency_analysis(task);
 }
