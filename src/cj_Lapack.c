@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <cuda_runtime_api.h>
+#include <cublas_v2.h>
 
 #include "cj_Macro.h"
 #include <CJ.h>
@@ -10,16 +12,83 @@
 #include "cj_Graph.h"
 #include "cj_Object.h"
 
-
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include "cj_Object.h"
+#define dA(i,j)  (dA + (j)*ldda + (i))
 
 void cj_Lapack_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_LAPACK_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
 }
+
+int get_dpotrf_nb (int n) {
+	if (n <= 3328) return 128;
+	else if (n<=4256) return 128;
+	else return 256;
+}
+
+#ifdef CJ_HAVE_CUDA
+int hybrid_dpotrf (cj_Device *device, int n, double *dA, int ldda, int *info) {
+  int	   j, jb, nb;
+  double f_one  = 1.0;
+  double f_mone = -1.0;
+  double *work;
+
+  //cudaSetDevice(device_id);
+  //cj_Device *device = worker->cj_ptr->device[device_id];
+  //cj_Cache *cache = &(device->cache);
+  cublasHandle_t *handle = &(device->handle);
+  cublasStatus_t status;
+
+  *info = 0;
+
+  cudaStream_t stream[2];
+  cudaStreamCreate(&stream[0]);
+  cudaStreamCreate(&stream[1]);
+
+  nb = get_dpotrf_nb(n);
+  cudaMallocHost((void**)&work, nb*nb*sizeof(double));
+
+  if ((nb <= 1) || (nb >= n)) {
+    cublasGetMatrix(n, n, sizeof(double), dA, ldda, work, n);
+    dpotrf("L", &n, work, &n, info);
+    cublasSetMatrix(n, n, sizeof(double), work, n, dA, ldda);
+  } 
+  else {
+    for (j = 0; j < n; j += nb) {
+      jb = min(nb, (n - j));
+
+      status = cublasDsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, 
+          jb, j, &f_mone, dA(j,0), ldda, &f_one, dA(j,j), ldda);
+      cudaMemcpy2DAsync(work, jb*sizeof(double), dA(j,j), ldda*sizeof(double),
+          sizeof(double)*jb, jb, cudaMemcpyDeviceToHost, stream[1]);
+
+      if ((j + jb) < n) {
+			  status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_T, 
+            (n - j - jb), jb, j, &f_mone, dA(j+jb,0), ldda, 
+						dA(j,0), ldda, &f_one, dA(j+jb,j), ldda);
+      }
+      cudaStreamSynchronize(stream[1]);
+      dpotrf("L", &jb, work, &jb, info);
+      if (*info != 0) {
+        *info = *info + j;
+        break;
+      }
+      cudaMemcpy2DAsync(dA(j,j), ldda*sizeof(double), work, jb*sizeof(double),
+          sizeof(double)*jb, jb, cudaMemcpyHostToDevice, stream[0]);
+
+      if ( (j + jb) < n) {
+        status = cublasDtrsm(*handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, 
+            (n - j - jb), jb, &f_one, dA(j,j), ldda, dA(j+jb,j), ldda); 
+      }
+    }
+  }
+  cudaStreamDestroy(stream[0]);
+  cudaStreamDestroy(stream[1]);
+
+  cudaFreeHost(work);
+  return 0;
+};
+#endif
 
 void cj_Chol_l_task_function (void *task_ptr) {
   cj_Task *task = (cj_Task *) task_ptr;
@@ -49,8 +118,6 @@ void cj_Chol_l_task_function (void *task_ptr) {
       float f_one = 1.0;
 	  float f_mone = -1.0;
       float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
-      status = cublasSgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
-          b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
     }
     else {
       double f_one = 1.0;
@@ -58,8 +125,6 @@ void cj_Chol_l_task_function (void *task_ptr) {
       double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
       //fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
       //fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
-      status = cublasDgemm(*handle, CUBLAS_OP_N, CUBLAS_OP_N, c->m, a->n, c->n, &f_one, a_buff, BLOCK_SIZE, 
-          b_buff, BLOCK_SIZE, &f_one, c_buff, BLOCK_SIZE);
     }
     if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
 #endif

@@ -773,21 +773,18 @@ void cj_Trsm_rlt_task_function (void *task_ptr) {
 
     if (a->eletype == CJ_SINGLE) { 
       float f_one = 1.0;
-	  float f_mone = -1.0;
+      float f_mone = -1.0;
       float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
       float *b_buff = (float *) cache->dev_ptr[dist_b->line[dest]];
-	  status = cublasStrsm(*handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, b->m, a->n, &f_one, a_buff, BLOCK_SIZE, b_buff, BLOCK_SIZE); 
-
-
+      status = cublasStrsm(*handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, b->m, a->n, &f_one, a_buff, BLOCK_SIZE, b_buff, BLOCK_SIZE); 
     }
     else {
       double f_one = 1.0;
-	  double f_mone = -1.0;
+      double f_mone = -1.0;
       double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
-      double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
-      fprintf(stderr, "%d, %d\n", (int) a_buff, (int) c_buff);
-	  status = cublasDtrsm(*handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, b->m, a->n, &f_one, a_buff, BLOCK_SIZE, b_buff, BLOCK_SIZE); 
-
+      double *b_buff = (double *) cache->dev_ptr[dist_b->line[dest]];
+      fprintf(stderr, "%d, %d\n", (int) a_buff, (int) b_buff);
+      status = cublasDtrsm(*handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, b->m, a->n, &f_one, a_buff, BLOCK_SIZE, b_buff, BLOCK_SIZE); 
     }
     if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Syrk_ln_task_function", "cublas failure");
 #endif
