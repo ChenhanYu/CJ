@@ -7,6 +7,7 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{rotating}
+\usepackage{verbatim}
 
 % -- David Package --
 \usepackage[normalem]{ulem}
@@ -106,65 +107,117 @@
 \section{Dependency Analysis}
 % ====================================================================
 
-GLACE allows users to write their program in a sequential fashion and performs run-time
-  dependency analysis to exploit parallelism. Top level routines will be partitioned into smaller
-  tasks that can have 3 different kinds of dependency: write after read (WAR), read after
-  write (RAW), write after write (WAW). Two tasks with one of these dependencies can't 
-  be executed concurrently otherwise may lead to incorrect results. 
-  In GLACE, the analysis phase will be performed after the task generating by 
-  using Algorithm ~\ref{alg:dep}. The algorithm is a simplified version of the dependency 
-  analysis in \cite{}.     
+%GLACE allows users to write their program in a sequential fashion and performs run-time
+%  dependency analysis to exploit parallelism. Top level routines will be partitioned into smaller
+%  tasks that can have 3 different kinds of dependency: write after read (WAR), read after
+%  write (RAW), write after write (WAW). Two tasks with one of these dependencies can't 
+%  be executed concurrently otherwise may lead to incorrect results. 
+%  In GLACE, the analysis phase will be performed after the task generating by 
+%  using Algorithm ~\ref{alg:dep}. The algorithm is a simplified version of the dependency 
+%  analysis in \cite{}.     
 
+GLACE allows users to write their linear algebra computation program in a sequential fashion and performs runtime dependency analysis to exploit parallelism. Similar to SuperMatrix[?], we view submatrix blocks as the basic units of data, and operations on those blocks  as the basic units of computation. With this abstraction, we can leverages the instruction level scheduling techniques to apply the out-of-order execution to those basic operations on submatrix blocks, or tasks, through detecting the data dependencies between all tasks. By representing the tasks as nodes and data dependencies as edges, the blocked linear algebra algorithm is mapped to a directed acyclic graph (DAG), which is a simplified version in [?]. Instead of executing the tasks immediately after we meet them in a blocked linear algorithm, we store the tasks and detect data dependencies between all tasks to form a directed acyclic graph.\\
 
-  %Especially for the submatrix part...
+In the first part, we will show the data dependency analysis in the block/task level for the blocked linear algebra algorithms. In the second part, we show the process for constructing a DAG from a blocked linear algebra algorithm according to input and output parameter of each task, from which we can exploit the parallelism.\\
 
-  dependecy analysis
+\subsection {data dependency in the block/task level.}
+We first illustrate the data dependency in the block/task level within the blocked linear algebra algorithms. There are three types of data dependencies: flow, anti, and output.\\
 
-
-  Ernie Chan
-
-
-  \subsection{Category of dependency for Matrix operations}
-  \begin{enumerate}
+\begin{enumerate}
 	\item True(Flow) dependency\\
   Flow dependencies occur where a block is read by one task after it is written by a previous task (read after write).\\
-  e.g.\\
-  S1: A := B + C;\\
-  S2: D := A + E;\\
-
-
+  \texttt{S1: A := B * C;\\
+  S2: D := A * E;\\}
+  In the above example, statement \texttt{S1} must complete execution and output the value of \texttt{A} before \texttt{S2} start to execute.\\
 \item Anti-dependency\\
   Anti-dependencies creates the scenarios when one task write a block after another task read the same task (write after read).\\
-  e.g.\\
-
-
+  \texttt{S3: B := A * C;\\
+  S4: A := D * E;\\}
+  Here \texttt{S1} must read the value of \texttt{A} before \texttt{S2} overwrites it.\\
 
 \item Output dependency\\
   Output dependencies take place where the output block of one operation is overwritten by subsequent computation (write after write).\\
-
-
-  To simplify the dependence analysis, one of our assumption is that the operations must first read the result of one operation before overwritting it. Therefore, we only need to concentrate on flow and anti-dependencies, where output dependencies are shown as flow dependencies.[Ernie's paper]\\
-
+  \texttt{S5: A := B * C;\\
+  S6: A := D * E;\\}
+  In this example, \texttt{S6} must be executed after \texttt{S5} to ensure that \texttt{A} hold the latest value.\\
   \end{enumerate}
+In all the level-3 BLAS operations, the last operand is the only matrix that is updated in the way of both read and overwritten. %We will utilize this feature to simplify our dependency analysis.\\ 
+To simplify the dependence analysis, one of our assumption is that these operations must first read the result of one operation before overwritting it. Therefore, we only need to concentrate on flow and anti-dependencies, where output dependencies are shown as flow dependencies.[Ernie's paper???]\\
 
-
-  focus
+  %Especially for the submatrix part...
+  %Instruction Scheduling
+  %\subsection{Category of dependency for Matrix operations}
 
   flow dependency notation
-
-
   The figure is too ugly. I think we may need to add the subscript to the symbol so that it looks a little "acceptable".
-
-
-
   Difference with Ernie Chan's work.
+  \subsection{Building a DAG}
+  If the basic operations on blocks, or tasks, are viewed as the nodes in a graph, and data dependencies between those tasks are regarded as the edges, then we can transform the blocked linear algebra algorithm as a directed acyclic graph. 
+  For example, in Cholesky decomposition (as motivating example part??), \\
+  The blocked \texttt{CHOL} (Cholesky decomposition) algorithm given a 4 $\times$ 4 matrix of blocks can be transformed to a DAG in Figure {?}.. \\
+  In Alg[], we present the alogorithm for dynamically detecting data dependencies and constructing a DAG for dependencies relations between tasks. The input is a loop-based blocked linear algebra algorthm  (such as the motivating example...) and the block size b. The output is a directed acyclic graph (V,E), and the data dependency information for each block accesssd by the linear algebra algorithm is stored in$A_{ij}\texttt{->}rset$ and $A_{ij}\texttt{->}wset$ (recording read tasks and overwritten tasks, respectively).\\
+  We can constructing the DAG in Figure {(...Motivating Exmaple..)} given a 4 $\times$ 4 matrix of blocks with this algorithm. The task \texttt{CHOL$_0$}, which reads and overwrites block $A_{00}$, is stored first. Since $A_{00}$ has not been accessed before, the $A_{ij}\texttt{->}rset$ and $A_{ij}\texttt{->}wset$ are both empty, we will not store new dependency by adding new edges and the block is ready to be used. We then record \texttt{CHOL$_0$} was the last task to read and overwrite $A_{00}$ by storing this task into both read set and write set of $A_{00}$. Next we store the task \texttt{TRSM$_1$}, which reads $A_{00}$. By adding the edges from each element \texttt{task'} in write set of $A_{00}$ (in which only \texttt{CHOL$_0$} exists) to \texttt{TRSM$_1$},  we now have an occurence of a flow dependency from \texttt{CHOL$_0$} to \texttt{TRSM$_1$}. This process will continue until all tasks are stored, and all edges representing flow and anti dependencies are added into the DAG. As output dependencies rarely occur within linear algebra algorithms, as we mentioned in (previous subsection), we assume that all output operands must first be read by a task, hence the output dependencies will become the flow dependency.\\
 
-  \subsection{Constructing a DAG}
-
-  In Alg[], we present the alogirhm for dynamically detecting data dependencies and constructing a DAG for dependencies relations between tasks.\\
+In this section, we illustrate how the data dependency anlysis works in the block/task level for blocked linear algebra algorithms. Furthermore, we show the process for constructing a DAG from a blocked linear algebra algorithm according to input and output parameter of each task, from which we can exploit the parallelism. Instead of executing the tasks immediately after we meet them in a blocked linear algorithm, we store the tasks and detect data dependencies between all tasks to form a directed acyclic graph.
 
 
- 
+  %\begin{comment}{such as the motivating example...}\end{comment},
+
+
+\begin{algorithm}
+\caption{{\bf (update).} GLACE dependencies analysis algorithm}
+\label{alg:update}
+{\footnotesize
+\begin{algorithmic} [1]
+\STATE $update(task)$
+\STATE Input: Linear algebra algorithm S, block size b
+\STATE Output: Directed acyclic graph $(V, E)$
+\STATE $V :=  \emptyset$; $E := \emptyset$;
+
+\FOR {each matrix A $\in \mathbb{R}^{m \times n}$}
+  \FOR {$i$ from $0$ to $m/b$}
+    \FOR {$j$ from $0$ to $n/b$}
+      \STATE $A_{ij} \texttt{->} rset = \emptyset$; $A_{ij} \texttt{->} wset = \emptyset$;
+    \ENDFOR
+  \ENDFOR
+\ENDFOR
+
+%$A_{ij}$ represents the $i$th in row, $j$th in column submatrix???? blocks
+\FOR {each \textbf{task} in S}
+  \STATE {Store \textbf{task} into the Vertex Set: $V: = V \cup \{task\}$}
+
+  \FOR {each $A_{ij}$ read / rw by \textbf{task}}
+    \STATE { $A_{ij}\texttt{->}rset :=  A_{ij}\texttt{->}rset \cup \{task\}$}
+    \IF {($A_{ij}\texttt{->}wset != \emptyset$) }
+      \FOR {each element $task'$ in $A_{ij}\texttt{->}wset$}
+	    \IF {$task != task'$}
+	      \STATE {Store flow dependency by adding edge $E:= E \cup \{task' \rightarrow task\}$}
+	    \ENDIF
+      \ENDFOR
+    \ENDIF
+  \ENDFOR
+
+  \FOR {each $A_{ij}$ write / rw by \textbf{task}}
+  \IF {$A_{ij}\texttt{->}rset != \emptyset$}
+      \FOR {each element $task'$ in $A_{ij}\texttt{->}rset$}
+	    \IF {$task != task'$}
+          \STATE {Store anti-dependency by adding edge $E:= E \cup \{task' \rightarrow task\}$}
+	    \ENDIF
+       \ENDFOR
+    \ENDIF 
+    \STATE { $A_{ij}\texttt{->}wset :=  A_{ij}\texttt{->}wset \cup \{task\}$}
+  \ENDFOR
+
+\ENDFOR
+%Submatrix -> 
+
+
+\end{algorithmic}
+}
+\end{algorithm}
+
+
+
 
 
 % ====================================================================
