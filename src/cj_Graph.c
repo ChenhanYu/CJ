@@ -1,3 +1,7 @@
+/*
+ * cj_Graph.c
+ * Build the DAG and generate the dependency graph(.dot file) as a intermediate output
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

@@ -1,3 +1,8 @@
+/*
+ * cj_Blas.h
+ * The header file for cj_Blas.c
+ * Implement a subset of BLAS (Basic Linear Algebra Subroutine) based on the FLAME implementation.
+ */
 void cj_Gemm_nn_task_function (void*);
 void cj_Gemm_nn (cj_Object*, cj_Object*, cj_Object*);
 extern void sgemm_( char *, char *, int *, int *, int *, float *, float *, int *, float *, int *, float *, float *, int * );

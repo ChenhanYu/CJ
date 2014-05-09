@@ -1,3 +1,8 @@
+/*
+ * cj_Device.h
+ * The header file for cj_Device.c
+ * Implement the software cache for the GPU device
+ */
 void cj_Cache_read_in (cj_Device*, int, cj_Object*);
 void cj_Cache_write_back (cj_Device*, int, cj_Object*);
 void cj_Cache_async_write_back (cj_Device*, int, cj_Object*);

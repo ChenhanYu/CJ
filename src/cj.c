@@ -1,3 +1,14 @@
+/*
+ * cj.c
+ * Global method for cj(GLACE: Global Linear Algebra Computing Environment).
+ * cj_error: Error Information Output.
+ * cj_Lock: Multithread lock for race.
+ * cj_Distribution: Data distribution in which device.
+ * cj_Task: Fine grained task, each task is corresponding to a linear algebra operation on a block.
+ * cj_Worker: Each worker is corresponding to a thread.
+ * cj_Queue: Ready Queue for the dynamic scheduling.
+ * cj_Schedule: ready_queue, remaining time(Priority Scheduling), lock management for all the workers.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -646,6 +657,11 @@ void cj_Queue_begin() {
 void cj_Queue_end() {
   cj_queue_enable = FALSE;
 }
+
+/* ---------------------------------------------------------------------
+ * cj_Schedule
+ * ---------------------------------------------------------------------
+ *  */
 
 void cj_Schedule_init() {
   int i;

@@ -1,3 +1,7 @@
+/*
+ * cj_Device.c
+ * Implement the software cache for the GPU device
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

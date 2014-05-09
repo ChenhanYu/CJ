@@ -1,3 +1,7 @@
+/* 
+ * test_chol.c
+ * Test file for the Cholesky Decomposition routine in the BLAS
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

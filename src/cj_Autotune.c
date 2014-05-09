@@ -1,3 +1,9 @@
+/*
+ * cj_Autotune.c
+ * Create the auto-tune information (the GEMM calculation time for a block) for the CPU and GPU
+ * If auto-tuner is run first time, the CPU and GPU information will be stored as cj_autotune.bin under the ../test folder;
+ * Otherwise, the CPU and GPU information will be directly read from the "../test/cj_autotune.bin", which will save some time.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

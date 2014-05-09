@@ -1,10 +1,18 @@
+/* 
+ * test_nested_gpu.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#ifdef CJ_HAVE_CUDA
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+#endif
 
 int main (int argc, char* argv[]) {
+
+#ifdef CJ_HAVE_CUDA
   double *A11, *B11, *B21, *C11, *C21, *dA11, *dB11, *dB21, *dC11, *dC21;
   double fone = 1.0, fmone = -1.0;
   int i, m = 6144;
@@ -75,5 +83,6 @@ int main (int argc, char* argv[]) {
   cudaFree(dA11);
   cudaFree(dB11); cudaFree(dB21);
   cudaFree(dC11); cudaFree(dC21);
+#endif
   return 0;
 }

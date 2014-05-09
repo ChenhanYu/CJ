@@ -1,3 +1,7 @@
+/* 
+ * test_syrk.c
+ * Test file for the SYRK routine in the BLAS
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

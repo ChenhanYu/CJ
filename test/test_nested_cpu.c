@@ -1,7 +1,13 @@
+/* 
+ * test_nested_cpu.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#ifdef CJ_HAVE_CUDA
 #include <cuda_runtime_api.h>
+#endif
 
 int main (int argc, char* argv[]) {
   double *A11, *B11, *B21, *C11, *C21;
@@ -18,9 +24,11 @@ int main (int argc, char* argv[]) {
   int info = 0;
   float time_ms;
 
+#ifdef CJ_HAVE_CUDA
   cudaEvent_t beg, end;
   cudaEventCreate(&beg); cudaEventCreate(&end);
   cudaEventRecord(beg, 0);
+#endif
 
   A11 = (double*) malloc(sizeof(double)*ma*na);
   B11 = (double*) malloc(sizeof(double)*mb*nb); B21 = (double*) malloc(sizeof(double)*mb*nb);
@@ -45,9 +53,11 @@ int main (int argc, char* argv[]) {
   free(B11); free(B21);
   free(C11); free(C21);
 
+#ifdef CJ_HAVE_CUDA
   cudaEventRecord(end, 0);
   cudaEventSynchronize(end);
   cudaEventElapsedTime(&time_ms, beg, end);
+#endif
   fprintf(stderr, "cpu_nested(%d, %f);\n", m, time_ms/1000);	
 
   return 0;

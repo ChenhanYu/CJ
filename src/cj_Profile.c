@@ -1,3 +1,9 @@
+/*
+ * cj_Profile.c
+ * Profiling information, which is generated in the run-time.
+ * cj_Event: Record the event and related time in the run-time.
+ * cj_Profile: Record the profiling information.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,6 +12,12 @@
 #include "cj_Object.h"
 
 static cj_Profile profile;
+
+
+/* ---------------------------------------------------------------------
+ * cj_Event
+ * ---------------------------------------------------------------------
+ *  */
 
 cj_Event *cj_Event_new () {
   cj_Event *event = (cj_Event*) malloc(sizeof(cj_Event));
@@ -27,6 +39,11 @@ void cj_Event_set (cj_Object *object, int task_id, cj_eveType evetype) {
 void cj_Event_delete (cj_Event *event) {
   free(event);
 };
+
+/* ---------------------------------------------------------------------
+ * cj_Profile
+ * ---------------------------------------------------------------------
+ *  */
 
 void cj_Profile_worker_record (cj_Worker *worker, cj_eveType evetype) {
   if (evetype == CJ_EVENT_TASK_RUN_BEG) {

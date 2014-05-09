@@ -1,8 +1,15 @@
+/*
+ * cj_Lapack.c
+ * Implement a subset of LAPACK (Linear Algebra Package) based on the FLAME implementation.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#ifdef CJ_HAVE_CUDA
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+#endif
 
 #include "cj_Macro.h"
 #include <CJ.h>

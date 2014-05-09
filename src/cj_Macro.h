@@ -1,3 +1,7 @@
+/*
+ * cj_Macro.h
+ * Some global Macros
+ */
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 

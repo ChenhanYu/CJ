@@ -1,3 +1,7 @@
+/*
+ * CJ.h
+ * The global data structure for cj(General Linear Algebra Computing Environment).
+ */
 #include <stdarg.h>
 #include <pthread.h>
 

@@ -1,3 +1,7 @@
+/* 
+ * test_trsm.c
+ * Test file for the TRSM routine in the BLAS
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

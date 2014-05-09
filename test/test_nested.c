@@ -1,3 +1,6 @@
+/* 
+ * test_nested.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,9 +29,12 @@ int main (int argc, char* argv[]) {
 
   cj_Init(nworker);
 
+
+#ifdef CJ_HAVE_CUDA
   cudaEvent_t beg, end;
   cudaEventCreate(&beg); cudaEventCreate(&end);
   cudaEventRecord(beg, 0);
+#endif
 
   A11 = cj_Object_new(CJ_MATRIX);
   B11 = cj_Object_new(CJ_MATRIX); B21 = cj_Object_new(CJ_MATRIX);
@@ -47,9 +53,11 @@ int main (int argc, char* argv[]) {
   cj_Chol_l(A11);
 
   cj_Term();
+#ifdef CJ_HAVE_CUDA
   cudaEventRecord(end, 0);
   cudaEventSynchronize(end);
   cudaEventElapsedTime(&time_ms, beg, end);
+#endif
   fprintf(stderr, "  glace_nested(%d) : %f s\n", m, time_ms/1000);	
   
 
