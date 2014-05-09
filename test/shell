@@ -1,0 +1,9 @@
+./test_nested_cpu.x -M 2048
+./test_nested_cpu.x -M 4096
+./test_nested_cpu.x -M 6144
+./test_nested_cpu.x -M 8192
+#./test_nested_gpu.x -M 2048
+#./test_nested_gpu.x -M 4096
+#./test_nested_gpu.x -M 6144
+#./test_nested_gpu.x -M 8192
+

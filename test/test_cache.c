@@ -42,7 +42,7 @@ int main () {
     cj_Gemm_nn(A, B, B);
   }
 
-  sleep(3);
+  //sleep(3);
 
   cj_Profile_output_timeline();
 

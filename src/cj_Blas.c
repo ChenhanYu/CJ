@@ -673,7 +673,7 @@ void cj_Gemm_nt_blk_var1 (cj_Object *A, cj_Object *B, cj_Object *C) {
 }
 
 void cj_Syrk_ln_task_function (void *task_ptr) {
-  fprintf(stderr, "Inside syrk_ln_task\n");
+  //fprintf(stderr, "Inside syrk_ln_task\n");
 
   cj_Task *task = (cj_Task *) task_ptr;
   cj_Worker *worker = task->worker;
@@ -702,7 +702,7 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
 
     if (a->eletype == CJ_SINGLE) { 
       float f_one = 1.0;
-	  float f_mone = -1.0;
+      float f_mone = -1.0;
       float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
       float *c_buff = (float *) cache->dev_ptr[dist_c->line[dest]];
       status = cublasSsyrk(*handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, c->m, a->n, &f_mone, a_buff, BLOCK_SIZE, 
@@ -710,7 +710,7 @@ void cj_Syrk_ln_task_function (void *task_ptr) {
     }
     else {
       double f_one = 1.0;
-	  double f_mone = -1.0;
+      double f_mone = -1.0;
       double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
       double *c_buff = (double *) cache->dev_ptr[dist_c->line[dest]];
       fprintf(stderr, "%d, %d\n", (int) a_buff, (int) c_buff);

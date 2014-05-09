@@ -10,6 +10,7 @@
 
 #include <CJ.h>
 #include "cj_Blas.h"
+#include "cj_Lapack.h"
 
 static cj_Autotune *autotune;
 
@@ -23,10 +24,11 @@ void cj_Autotune_error (const char *func_name, char* msg_text) {
 void cj_Autotune_cublas () {
   int i, nb, ld;
   float time_ms = 0.0;
-  float fone = 1.0;
-  double done = 1.0;
+  float fone = 1.0, fmone = -1.0;
+  double done = 1.0, dmone = -1.0;
   float *A, *B, *C;
-  double *dA, *dB, *dC;
+  double *dA, *dB, *dC, *hA;
+  int info;
 
   cublasStatus_t status;
   cublasHandle_t handle;
@@ -44,6 +46,11 @@ void cj_Autotune_cublas () {
   cudaMalloc((void**)&dB, ld*ld*sizeof(double));
   cudaMalloc((void**)&dC, ld*ld*sizeof(double));
 
+  hA = (double*)malloc(sizeof(double)*ld*ld);
+  for (i = 0; i < ld; i++) hA[i + ld*i] = (double) ld;  
+  cudaMemcpy(dA, hA, sizeof(double)*ld*ld, cudaMemcpyHostToDevice);
+  free(hA);
+
   for (i = 0; i < AUTOTUNE_GRID; i++) {
     nb = (i + 1)*BLOCK_SIZE;
     cudaEventRecord(beg, 0);
@@ -53,6 +60,23 @@ void cj_Autotune_cublas () {
     cudaEventElapsedTime(&time_ms, beg, end);
     fprintf(stderr, "  cublasSgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
     autotune->cublas_sgemm[i] = time_ms;
+
+    cudaEventRecord(beg, 0);
+    status = cublasSsyrk(handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, nb, nb, &fmone, A, ld, &fone, C, ld);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  cublasSsyrk(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->cublas_ssyrk[i] = time_ms;
+
+    cudaEventRecord(beg, 0);
+    status = cublasStrsm(handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, 
+        nb, nb, &fone, A, ld, B, ld); 
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  cublasStrsm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->cublas_strsm[i] = time_ms;
   }
 
   for (i = 0; i < AUTOTUNE_GRID; i++) {
@@ -64,6 +88,31 @@ void cj_Autotune_cublas () {
     cudaEventElapsedTime(&time_ms, beg, end);
     fprintf(stderr, "  cublasDgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
     autotune->cublas_dgemm[i] = time_ms;
+
+    cudaEventRecord(beg, 0);
+    status = cublasDsyrk(handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, nb, nb, &dmone, dA, ld, &done, dC, ld);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  cublasDsyrk(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->cublas_dsyrk[i] = time_ms;
+
+    cudaEventRecord(beg, 0);
+    status = cublasDtrsm(handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT, 
+        nb, nb, &done, dA, ld, dB, ld); 
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  cublasDtrsm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->cublas_dtrsm[i] = time_ms;
+
+    cudaEventRecord(beg, 0);
+    hybrid_dpotrf (&handle, nb, dA, ld, &info);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time_ms, beg, end);
+    fprintf(stderr, "  hybridDpotrf(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->hybrid_dpotrf[i] = time_ms;
   }
 
   cudaFree(A); cudaFree(B); cudaFree(C);
@@ -74,37 +123,67 @@ void cj_Autotune_cublas () {
 #endif
 
 void cj_Autotune_mkl () {
-  int i, nb, ld;
+  int i, nb, ld, info;
   float time_ms = 0.0;
-  float fone = 1.0;
-  double done = 1.0;
+  float fone = 1.0, fmone = -1.0;
+  double done = 1.0, dmone = -1.0;;
   clock_t t;
 
   ld = BLOCK_SIZE*AUTOTUNE_GRID;
 
-  float *A = malloc(ld*ld*sizeof(float));
-  float *B = malloc(ld*ld*sizeof(float));
-  float *C = malloc(ld*ld*sizeof(float));
+  float  *A  = malloc(ld*ld*sizeof(float));
+  float  *B  = malloc(ld*ld*sizeof(float));
+  float  *C  = malloc(ld*ld*sizeof(float));
   double *dA = malloc(ld*ld*sizeof(double));
   double *dB = malloc(ld*ld*sizeof(double));
   double *dC = malloc(ld*ld*sizeof(double));
 
-  for (i = 0; i < AUTOTUNE_GRID; i++) {
-    nb = (i + 1)*BLOCK_SIZE;
-    t = clock();
-    sgemm_("N", "N", &nb, &nb, &nb, &fone, A, &ld, B, &ld, &fone, C, &ld);
-    time_ms = ((float) (clock() - t))/1000;
-    fprintf(stderr, "  Sgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
-    autotune->mkl_sgemm[i] = time_ms;
+  for (i = 0; i < ld; i++) {
+    A[i + ld*i]  = (float)  ld;
+    dA[i + ld*i] = (double) ld;
   }
 
   for (i = 0; i < AUTOTUNE_GRID; i++) {
     nb = (i + 1)*BLOCK_SIZE;
     t = clock();
-    dgemm_("N", "N", &nb, &nb, &nb, &done, dA, &ld, dB, &ld, &done, dC, &ld);
+    sgemm_("N", "N", &nb, &nb, &nb, &fmone, A, &ld, B, &ld, &fone, C, &ld);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Sgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_sgemm[i] = time_ms;
+    t = clock();
+    ssyrk_("L", "N", &nb, &nb, &fmone, A, &ld, &fone, C, &ld);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Ssyrk(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_ssyrk[i] = time_ms;
+    t = clock();
+    strsm_("R", "L", "T", "N", &nb, &nb, &fone, A, &ld, B, &ld);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Strsm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_strsm[i] = time_ms;
+  }
+
+  for (i = 0; i < AUTOTUNE_GRID; i++) {
+    nb = (i + 1)*BLOCK_SIZE;
+    t = clock();
+    dgemm_("N", "N", &nb, &nb, &nb, &dmone, dA, &ld, dB, &ld, &done, dC, &ld);
     time_ms = ((float) (clock() - t))/1000;
     fprintf(stderr, "  Dgemm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
     autotune->mkl_dgemm[i] = time_ms;
+    t = clock();
+    dsyrk_("L", "N", &nb, &nb, &dmone, dA, &ld, &done, dC, &ld);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Dsyrk(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_dsyrk[i] = time_ms;
+    t = clock();
+    dtrsm_("R", "L", "T", "N", &nb, &nb, &done, dA, &ld, dB, &ld);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Dtrsm(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_dtrsm[i] = time_ms;
+    t = clock();
+    dpotrf_("L", &nb, dA, &ld, &info);
+    time_ms = ((float) (clock() - t))/1000;
+    fprintf(stderr, "  Dpotrf(%d, %d, %d) : %f ms\n", nb, nb, nb, time_ms);	
+    autotune->mkl_dpotrf[i] = time_ms;
   }
 
   free(A);  free(B);  free(C);
@@ -148,9 +227,6 @@ void cj_Autotune_init () {
   pFile = fopen("cj_autotune.bin", "rb");
 
   if (pFile) {
-    //fread(autotune->cublas_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    //fread(autotune->mkl_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    //fread(&autotune->pci_bandwidth, sizeof(float), 1, pFile); 
     fread(autotune, sizeof(cj_Autotune), 1, pFile); 
     fclose(pFile);
   }
@@ -161,9 +237,6 @@ void cj_Autotune_init () {
     cj_Autotune_pci();
 #endif
     pFile = fopen("cj_autotune.bin", "wb");
-    //fwrite(autotune->cublas_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    //fwrite(autotune->mkl_sgemm, sizeof(float), AUTOTUNE_GRID, pFile); 
-    //fwrite(&autotune->pci_bandwidth, sizeof(float), 1, pFile); 
     fwrite(autotune, sizeof(cj_Autotune), 1, pFile); 
     fclose(pFile);
   }

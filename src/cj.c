@@ -287,18 +287,18 @@ void cj_Worker_fetch (cj_Task *task, cj_Worker *worker) {
       
       int dest = worker->device_id + 1;
 
-	  /* Acquire the distribution lock */
+      /* Acquire the distribution lock */
       cj_Lock_acquire(&dist->lock);
       {
-		/* if the matrix has no latest copy on this worker */
+        /* if the matrix has no latest copy on this worker */
         if (dist->avail[dest] == FALSE) {
-		  /* if there is no copy in the main memory of CPU */
+          /* if there is no copy in the main memory of CPU */
           if (dist->avail[0] == FALSE) {
             for (i = 1; i < MAX_DEV + 1; i++) {
               if (dist->avail[i] == TRUE) {
                 /* Sync Write Back */
                 fprintf(stderr, RED "(%d) Cache_writeback: %d\n" NONE, worker->device_id, i - 1);
-				/* pick a location from the distribution and write back */
+                /* pick a location from the distribution and write back */
                 cj_Cache_write_back(dist->device[i], dist->line[i], arg_I);
                 dist->avail[0] = TRUE;
                 break;
@@ -333,9 +333,14 @@ int cj_Worker_prefetch_d2h (cj_Worker *worker) {
 
     int dest = worker->device_id + 1;
 
-    if (dist->avail[0] == TRUE) return 0;
+    if (dist->avail[0] == TRUE) {
+      object = cj_Dqueue_pop_head(worker->write_back);
+      return 0;
+    }
     if (dist->avail[dest] == FALSE) {
-      cj_error("cj_Worker_prefetch_d2h", "missing distribution");
+      object = cj_Dqueue_pop_head(worker->write_back);
+      return 0;
+      //cj_error("cj_Worker_prefetch_d2h", "missing distribution");
     }
     /* This is an async write back and will be sync later. */
     cj_Cache_async_write_back(dist->device[dest], dist->line[dest], object);
@@ -437,56 +442,63 @@ float cj_Worker_estimate_cost (cj_Task *task, cj_Worker *worker) {
   cj_Autotune *model = cj_Autotune_get_ptr(); 
   float comp_cost = 0.0, comm_cost = 0.0, cost = 0.0;
 
-  if (task->function == &cj_Gemm_nn_task_function) {
-    if (worker->devtype == CJ_DEV_CUDA) {
-      //comp_cost = model->cublas_sgemm[0];
+  if (worker->devtype == CJ_DEV_CUDA) {
+    if (task->function == &cj_Gemm_nn_task_function)
       comp_cost = model->cublas_dgemm[0];
-      /* Scan through all arguments. */
-      cj_Object *arg_I = task->arg->dqueue->head;
-      while (arg_I) {
-        if (arg_I->objtype == CJ_MATRIX) {
-          cj_Matrix       *matrix = arg_I->matrix;
-          cj_Matrix       *base   = matrix->base;
-          cj_Distribution *dist   = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
+    if (task->function == &cj_Syrk_ln_task_function)
+      comp_cost = model->cublas_dsyrk[0];
+    if (task->function == &cj_Trsm_rlt_task_function)
+      comp_cost = model->cublas_dtrsm[0];
+    if (task->function == &cj_Chol_l_task_function)
+      comp_cost = model->hybrid_dpotrf[0];
+    /* Scan through all arguments. */
+    cj_Object *arg_I = task->arg->dqueue->head;
+    while (arg_I) {
+      if (arg_I->objtype == CJ_MATRIX) {
+        cj_Matrix       *matrix = arg_I->matrix;
+        cj_Matrix       *base   = matrix->base;
+        cj_Distribution *dist   = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
 
-          int dest = worker->device_id + 1;
-
-		  /* if the argument is not available on the device */
-          if (dist->avail[dest] == FALSE) {
-            comm_cost = model->pci_bandwidth;
-			/* if the argument is not available on the host */
-            if (dist->avail[0] == FALSE) {
-              comm_cost = 2*(model->pci_bandwidth);
-            }
+        int dest = worker->device_id + 1;
+        /* if the argument is not available on the device */
+        if (dist->avail[dest] == FALSE) {
+          comm_cost = model->pci_bandwidth;
+          /* if the argument is not available on the host */
+          if (dist->avail[0] == FALSE) {
+            comm_cost = 2*(model->pci_bandwidth);
           }
         }
-        cost += comm_cost;
-        arg_I = arg_I->next;
       }
-    }
-    else if (worker->devtype == CJ_DEV_CPU) {
-      //comp_cost = model->mkl_sgemm[0];
-      comp_cost = model->mkl_dgemm[0];
-      cj_Object *arg_I = task->arg->dqueue->head;
-      while (arg_I) {
-        if (arg_I->objtype == CJ_MATRIX) {
-          cj_Matrix       *matrix  = arg_I->matrix;
-          cj_Matrix       *base    = matrix->base;
-          cj_Distribution *dist    = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
-
-          int dest = worker->device_id + 1;
-
-		  /* if the argument is not available on the host */
-          if (dist->avail[dest] == FALSE) {
-            comm_cost = model->pci_bandwidth;
-          }
-        }
-        cost += comm_cost;
-        arg_I = arg_I->next;
-      }
+      cost += comm_cost;
+      arg_I = arg_I->next;
     }
   }
+  else if (worker->devtype == CJ_DEV_CPU) {
+    if (task->function == &cj_Gemm_nn_task_function)
+      comp_cost = model->mkl_dgemm[0];
+    if (task->function == &cj_Syrk_ln_task_function)
+      comp_cost = model->mkl_dsyrk[0];
+    if (task->function == &cj_Trsm_rlt_task_function)
+      comp_cost = model->mkl_dtrsm[0];
+    if (task->function == &cj_Chol_l_task_function)
+      comp_cost = model->mkl_dpotrf[0];
+    cj_Object *arg_I = task->arg->dqueue->head;
+    while (arg_I) {
+      if (arg_I->objtype == CJ_MATRIX) {
+        cj_Matrix       *matrix  = arg_I->matrix;
+        cj_Matrix       *base    = matrix->base;
+        cj_Distribution *dist    = base->dist[matrix->offm/BLOCK_SIZE][matrix->offn/BLOCK_SIZE];
 
+        int dest = worker->device_id + 1;
+        /* if the argument is not available on the host */
+        if (dist->avail[dest] == FALSE) {
+          comm_cost = model->pci_bandwidth;
+        }
+      }
+      cost += comm_cost;
+      arg_I = arg_I->next;
+    }
+  }
   cost += comp_cost;
 
   return cost;
@@ -560,7 +572,7 @@ int cj_Worker_execute (cj_Task *task, cj_Worker *worker) {
 void *cj_Worker_entry_point (void *arg) {
   cj_Schedule *schedule = &cj.schedule;
   cj_Worker *me = (cj_Worker *) arg;
-  int id, condition, committed;
+  int id,committed;
   float cost;
 
   id = me->id;
@@ -573,9 +585,7 @@ void *cj_Worker_entry_point (void *arg) {
     }
   }
 
-  condition = 1;
-  /* the worker will keep working .... */
-  while (condition) {
+  while (1) {
     cj_Object *task;
 
     /* Critical section : access ready_queue. */
@@ -591,8 +601,16 @@ void *cj_Worker_entry_point (void *arg) {
 	  /* if commit then update dependencies */
       if (committed) {
         cj_Task_dependencies_update(task);
+        /* Critical section : access ntask. */
+        cj_Lock_acquire(&schedule->ntask_lock);
+        {
+          schedule->ntask ++;
+        }
+        cj_Lock_release(&schedule->ntask_lock);
       }
     }
+    int ntask = cj_Dqueue_get_size(cj_Graph_vertex_get());
+    if (cj.terminate == TRUE && schedule->ntask == ntask) break;
   }
 
   return NULL;
@@ -632,13 +650,14 @@ void cj_Queue_end() {
 void cj_Schedule_init() {
   int i;
   cj_Schedule *schedule = &cj.schedule;
+  schedule->ntask = 0;
   for (i = 0; i < MAX_WORKER; i++) {
     schedule->ready_queue[i] = cj_Object_new(CJ_DQUEUE);
     schedule->time_remaining[i] = 0.0;
     cj_Lock_new(&schedule->run_lock[i]);
     cj_Lock_new(&schedule->ready_queue_lock[i]);
   }
-  cj_Lock_new(&schedule->war_lock);
+  cj_Lock_new(&schedule->ntask_lock);
   cj_Lock_new(&schedule->pci_lock);
   cj_Lock_new(&schedule->gpu_lock);
   cj_Lock_new(&schedule->mic_lock);
@@ -654,6 +673,7 @@ void cj_Init(int nworker) {
 
   int i, ret;
   void *(*worker_entry_point)(void *);
+  cj.terminate = FALSE;
   cj_Profile_init();
   cj_Graph_init();
   cj_Schedule_init();
@@ -701,6 +721,7 @@ void cj_Term() {
   int i, ret;
 
   cj_Graph_output_dot();
+  cj.terminate = TRUE;
 
   for (i = 1; i < cj.nworker; i++) {
     ret = pthread_join(cj.worker[i]->threadid, NULL);

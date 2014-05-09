@@ -7,13 +7,13 @@
 #endif
 
 #define AUTOTUNE_GRID 1
-#define BLOCK_SIZE 4
-#define CACHE_LINE 32
+#define BLOCK_SIZE 2048
+#define CACHE_LINE 48
 #define MAX_WORKER 8
 #define MAX_DEV 4
 #define MAX_GPU 4
 #define MAX_MIC 4
-#define GPU_NUM 0
+#define GPU_NUM 3
 
 typedef enum {CJ_RED, CJ_GREEN, CJ_BLUE, CJ_YELLOW, CJ_PURPLE, CJ_ORANGE, CJ_BLACK} cj_Color;
 typedef enum {CJ_EVENT, CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CSC, CJ_SPARSE, CJ_CONSTANT} cj_objType;
@@ -176,6 +176,18 @@ struct autotune_s {
   float mkl_dgemm[AUTOTUNE_GRID];
   float cublas_sgemm[AUTOTUNE_GRID];
   float cublas_dgemm[AUTOTUNE_GRID];
+  float mkl_ssyrk[AUTOTUNE_GRID];
+  float mkl_dsyrk[AUTOTUNE_GRID];
+  float cublas_ssyrk[AUTOTUNE_GRID];
+  float cublas_dsyrk[AUTOTUNE_GRID];
+  float mkl_strsm[AUTOTUNE_GRID];
+  float mkl_dtrsm[AUTOTUNE_GRID];
+  float cublas_strsm[AUTOTUNE_GRID];
+  float cublas_dtrsm[AUTOTUNE_GRID];
+  float mkl_spotrf[AUTOTUNE_GRID];
+  float mkl_dpotrf[AUTOTUNE_GRID];
+  float hybrid_spotrf[AUTOTUNE_GRID];
+  float hybrid_dpotrf[AUTOTUNE_GRID];
   float pci_bandwidth;
 };
 
@@ -195,10 +207,10 @@ struct schedule_s {
   /* Remaining time for each worker. For performance model */
   float time_remaining[MAX_WORKER];
   /* It seems that we don't need this to record the remaing tasks */
-  int task_remaining;
+  int ntask;
   struct lock_s run_lock[MAX_WORKER];
   struct lock_s ready_queue_lock[MAX_WORKER];
-  struct lock_s war_lock;
+  struct lock_s ntask_lock;
   struct lock_s pci_lock;
   struct lock_s gpu_lock;
   struct lock_s mic_lock;
@@ -206,12 +218,13 @@ struct schedule_s {
 
 struct cj_s {
   int nworker;
-  struct schedule_s schedule;
-  struct worker_s **worker;
   int ngpu;
   int nmic;
+  struct schedule_s schedule;
+  struct worker_s **worker;
   struct device_s *device[MAX_DEV];
   pthread_attr_t worker_attr;
+  cj_Bool terminate;
 };
 
 struct cache_s {

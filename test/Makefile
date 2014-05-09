@@ -1,7 +1,7 @@
 CJ_DIR = ..
 include ../make.inc
 
-D_CC_SRC = test_gemm.c test_syrk.c test_cache.c test_trsm.c test_chol.c
+D_CC_SRC = test_gemm.c test_syrk.c test_cache.c test_trsm.c test_chol.c test_nested.c test_nested_cpu.c test_nested_gpu.c
 
 D_CC_EXE = $(D_CC_SRC:.c=.x)
 

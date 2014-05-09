@@ -27,16 +27,11 @@ int get_dpotrf_nb (int n) {
 }
 
 #ifdef CJ_HAVE_CUDA
-int hybrid_dpotrf (cj_Device *device, int n, double *dA, int ldda, int *info) {
+void hybrid_dpotrf (cublasHandle_t *handle, int n, double *dA, int ldda, int *info) {
   int	   j, jb, nb;
-  double f_one  = 1.0;
-  double f_mone = -1.0;
+  double f_one  = 1.0, f_mone = -1.0;
   double *work;
 
-  //cudaSetDevice(device_id);
-  //cj_Device *device = worker->cj_ptr->device[device_id];
-  //cj_Cache *cache = &(device->cache);
-  cublasHandle_t *handle = &(device->handle);
   cublasStatus_t status;
 
   *info = 0;
@@ -86,7 +81,6 @@ int hybrid_dpotrf (cj_Device *device, int n, double *dA, int ldda, int *info) {
   cudaStreamDestroy(stream[1]);
 
   cudaFreeHost(work);
-  return 0;
 };
 #endif
 
@@ -108,41 +102,36 @@ void cj_Chol_l_task_function (void *task_ptr) {
     cj_Device *device = worker->cj_ptr->device[device_id];
     cj_Cache *cache = &(device->cache);
     cublasHandle_t *handle = &(device->handle);
-    cublasStatus_t status;
     cj_Distribution *dist_a = a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCK_SIZE];
     if (dist_a->avail[dest] != TRUE) {
-      cj_Blas_error("cj_Gemm_nn_task_function", "No propriate distribution.");
+      cj_Blas_error("cj_Chol_l_task_function", "No propriate distribution.");
     }
 
     if (a->eletype == CJ_SINGLE) { 
-      float f_one = 1.0;
-	  float f_mone = -1.0;
+      float f_one = 1.0, f_mone = -1.0;
       float *a_buff = (float *) cache->dev_ptr[dist_a->line[dest]];
     }
     else {
-      double f_one = 1.0;
-	  double f_mone = -1.0;
+      double f_one = 1.0, f_mone = -1.0;
+      int info;
       double *a_buff = (double *) cache->dev_ptr[dist_a->line[dest]];
-      //fprintf(stderr, "%d, %d, %d, %d\n", c->m, a->n, c->n, BLOCK_SIZE);
-      //fprintf(stderr, "%d, %d, %d\n", (int) a_buff, (int) b_buff, (int) c_buff);
+      cudaSetDevice(device->id);
+      hybrid_dpotrf (&device->handle, a->m, a_buff, BLOCK_SIZE, &info);
     }
-    if (status != CUBLAS_STATUS_SUCCESS) cj_Blas_error("cj_Gemm_nn_task_function", "cublas failure");
 #endif
   }
   else {
     if (a->eletype == CJ_SINGLE) {
-      float f_one = 1.0;
-	  float f_mone = -1.0;
-	  int res = 0;
+      float f_one = 1.0, f_mone = -1.0;
+      int info = 0;
       float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
-	  spotrf_("L", &(a->m), a_buff, &(a->base->m), &res);
+      spotrf_("L", &(a->m), a_buff, &(a->base->m), &info);
     }
     else {
-      double f_one = 1.0;
-	  double f_mone = -1.0;
-	  int res = 0;
+      double f_one = 1.0, f_mone = -1.0;
+      int info = 0;
       double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
-	  dpotrf_("L", &(a->m), a_buff, &(a->base->m), &res);
+      dpotrf_("L", &(a->m), a_buff, &(a->base->m), &info);
     }
   }
 
@@ -150,8 +139,6 @@ void cj_Chol_l_task_function (void *task_ptr) {
       task->worker->id, task->id, task->name,
       a->offm/BLOCK_SIZE, a->offn/BLOCK_SIZE);
 }
-
-
 
 void cj_Chol_l_task(cj_Object *A) {
   /* Gemm will read A, B, C and write C. */
