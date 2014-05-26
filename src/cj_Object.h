@@ -25,6 +25,8 @@ void cj_Matrix_repart_1x2_to_1x3 (cj_Object*, cj_Object*, cj_Object*, cj_Object*
 void cj_Matrix_cont_with_3x1_to_2x1 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Side);
 void cj_Matrix_cont_with_1x3_to_1x2 (cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Object*, cj_Side);
 
+#define cj_Matrix_get_distribution(a) a->base->dist[a->offm/BLOCK_SIZE][a->offn/BLOCKSIZE]
+
 /* cj_Dqueue function prototypes */
 int cj_Dqueue_get_size (cj_Object*);
 void cj_Dqueue_push_head (cj_Object*, cj_Object*);

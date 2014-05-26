@@ -5,6 +5,7 @@
  * cj_Matrix: CJ inner matrix data structure.
  * cj_Object: Object type (such as tasks, matrix, etc).
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,10 +18,9 @@
 #include "cj_Sparse.h"
 #include "cj_Profile.h"
 
-
 #include "cj_Object.h"
 
-/*error information for debugging*/
+/* error information for debugging */
 void cj_Object_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_OBJECT_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
@@ -149,6 +149,20 @@ void cj_Dqueue_push_tail (cj_Object *object, cj_Object *target) {
     tail->next = target; 
   }
   dqueue->size ++;
+}
+
+cj_Object *cj_Dqueue_get_head (cj_Object *object) {
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_get_head", "The object is not a dqueue.");
+  }
+  return object->dqueue->head;
+}
+
+cj_Object *cj_Dqueue_get_tail (cj_Object *object) {
+  if (object->objtype != CJ_DQUEUE) {
+    cj_Object_error("Dqueue_get_tail", "The object is not a dqueue.");
+  }
+  return object->dqueue->tail;
 }
 
 void cj_Dqueue_clear(cj_Object *object) {
@@ -984,18 +998,18 @@ void cj_Sqrt(cj_Object *A) {
   a = A->matrix; 
 
   if (a->eletype == CJ_SINGLE) {
-	float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
-	if (*a_buff < 0.0F || isnan(*a_buff) ) 
-	  fprintf(stderr, "the sqrt entry is less than 0\n");
-	else
-	  *a_buff = ( float ) sqrt ( *a_buff );
-  } else {
-	double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
-	if (*a_buff < 0.0 || isnan(*a_buff) ) 
-	  fprintf(stderr, "the sqrt entry is less than 0\n");
-	else
-	  *a_buff = ( double ) sqrt ( *a_buff );
+    float *a_buff = (float *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+    if (*a_buff < 0.0F || isnan(*a_buff) ) 
+      fprintf(stderr, "the sqrt entry is less than 0\n");
+    else
+      *a_buff = ( float ) sqrt ( *a_buff );
+  } 
+  else {
+    double *a_buff = (double *) (a->base->buff) + (a->base->m)*(a->offn) + a->offm;
+    if (*a_buff < 0.0 || isnan(*a_buff) ) 
+      fprintf(stderr, "the sqrt entry is less than 0\n");
+    else
+      *a_buff = ( double ) sqrt ( *a_buff );
   }
-
 }
 
