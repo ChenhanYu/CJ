@@ -1,7 +1,12 @@
 /*
- * cj_Device.c
- * Implement the software cache for the GPU device
+ *  cj_Device.c
+ *  Chenhan D. Yu
+ *  Created: Mar 30, 2014
+ *
+ *  Implement the software cache for the GPU device.
+ *
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -16,12 +21,23 @@
 static int gpu_counter = 0;
 static int mic_counter = 0;
 
+/**
+ *  @brief  Report error messages. 
+ *  @param  *func_name :function name pointer
+ *  @param  *msg_text :error message pointer
+ */
 void cj_Device_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_DEVICE_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
 }
 
+/**
+ *  @brief  Read the target object into device cache.
+ *  @param  *device :device structure pointer
+ *  @param  line_id :cache line id
+ *  @param  *target :target object pointer
+ */
 void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   uintptr_t ptr_d = cache->dev_ptr[line_id];
@@ -44,6 +60,12 @@ void cj_Cache_read_in (cj_Device *device, int line_id, cj_Object *target) {
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
+/**
+ *  @brief  Write the target object from device cache back to main memory.
+ *  @param  *device :device structure pointer
+ *  @param  line_id :cache line id
+ *  @param  *target :target object pointer
+ */
 void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   uintptr_t ptr_d = cache->dev_ptr[line_id];
@@ -62,7 +84,13 @@ void cj_Cache_write_back (cj_Device *device, int line_id, cj_Object *target) {
   cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
-
+/**
+ *  @brief  Write the target object from device cache back to main memory 
+ *          asynchronously. This functions can be synchronized by cj_Cache_sync.
+ *  @param  *device :device structure pointer
+ *  @param  line_id :cache line id
+ *  @param  *target :target object pointer
+ */
 void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   uintptr_t ptr_d = cache->dev_ptr[line_id];
@@ -79,8 +107,14 @@ void cj_Cache_async_write_back (cj_Device *device, int line_id, cj_Object *targe
   //cache->status[line_id] = CJ_CACHE_CLEAN;
 }
 
-/* This device cache is implemented that can only replace clean cache line. If
- * the cache line is dirty, it will search for another one. */
+/**
+ *  @brief  Fetch the target from main memory to device memory. This device cache 
+ *          is implemented that can only replace clean cache line. If the cache 
+ *          line is dirty, it will search for another one.
+ *  @param  *device :device structure pointer
+ *  @param  *target :target object pointer
+ *  @return cache line id
+ */
 int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   cj_Cache *cache = &device->cache;
   int line_id = cache->fifo;
@@ -98,6 +132,10 @@ int cj_Cache_fetch (cj_Device *device, cj_Object *target) {
   return line_id;
 }
 
+/**
+ *  @brief  Synchronous barrier implemented by CUDA streams.
+ *  @param  *device :device structure pointer
+ * */
 void cj_Cache_sync (cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
@@ -106,6 +144,10 @@ void cj_Cache_sync (cj_Device *device) {
   }
 }
 
+/**
+ *  @brief  Synchronous barrier implemented by CUDA streams.
+ *  @param  *device :device structure pointer
+ * */
 void cj_Device_sync (cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
@@ -114,6 +156,12 @@ void cj_Device_sync (cj_Device *device) {
   }
 }
 
+/**
+ *  @brief  Allocate device memory for device cache or other usage.
+ *  @param  len :memory length in bytes
+ *  @param  devtype :can be CUDA or MIC
+ *  @return device memory pointer
+ * */
 uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {
   char *ptr;
   if (devtype == CJ_DEV_CUDA) {
@@ -126,6 +174,11 @@ uintptr_t cj_Device_malloc (size_t len, cj_devType devtype) {
   return (uintptr_t) ptr;
 }
 
+/**
+ *  @brief  Free the target device memory.
+ *  @param  ptr :device memory pointer represented in unsigned long long.
+ *  @param  devtype :can be CUDA or MIC
+ * */
 void cj_Device_free (uintptr_t ptr, cj_devType devtype) {
   if (devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
@@ -136,6 +189,13 @@ void cj_Device_free (uintptr_t ptr, cj_devType devtype) {
   }
 }
 
+/**
+ *  @brief  Copy the object from device memory to main memory.
+ *  @param  *ptr_h :the corresponding main memory pointer
+ *  @param  ptr_d :device memory pointer represented in unsigned long long
+ *  @param  len :memory length in bytes
+ *  @param  *device :device structure pointer
+ * */
 void cj_Device_memcpy_d2h (char *ptr_h, uintptr_t ptr_d, size_t len, cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA
@@ -148,6 +208,16 @@ void cj_Device_memcpy_d2h (char *ptr_h, uintptr_t ptr_d, size_t len, cj_Device *
   }
 }
 
+/**
+ *  @brief  Copy the object (matrix) from device memory to main memory.
+ *  @param  *ptr_h :the corresponding main memory pointer
+ *  @param  pitch_h: 
+ *  @param  ptr_d :device memory pointer represented in unsigned long long
+ *  @param  pitch_d:
+ *  @param  mbytes:
+ *  @param  n:
+ *  @param  *device :device structure pointer
+ * */
 void cj_Device_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_t pitch_d, 
     size_t mbytes, size_t n, cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
@@ -164,6 +234,16 @@ void cj_Device_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_
   }
 }
 
+/**
+ *  @brief  Copy the object (matrix) from main memory to device memory asynchronously.
+ *  @param  *ptr_h :the corresponding main memory pointer
+ *  @param  pitch_h: 
+ *  @param  ptr_d :device memory pointer represented in unsigned long long
+ *  @param  pitch_d:
+ *  @param  mbytes:
+ *  @param  n:
+ *  @param  *device :device structure pointer
+ * */
 void cj_Device_async_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d, size_t pitch_d, 
     size_t mbytes, size_t n, cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
@@ -180,6 +260,13 @@ void cj_Device_async_memcpy2d_d2h (char *ptr_h, size_t pitch_h, uintptr_t ptr_d,
   }
 }
 
+/**
+ *  @brief  Copy the object from main memory to device memory.
+ *  @param  ptr_d :device memory pointer represented in unsigned long long
+ *  @param  *ptr_h :the corresponding main memory pointer
+ *  @param  len :memory length in bytes
+ *  @param  *device :device structure pointer
+ * */
 void cj_Device_memcpy_h2d (uintptr_t ptr_d, char *ptr_h, size_t len, cj_Device *device) {
   if (device->devtype == CJ_DEV_CUDA) {
 #ifdef CJ_HAVE_CUDA

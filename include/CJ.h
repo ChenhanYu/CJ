@@ -1,7 +1,12 @@
 /*
- * CJ.h
- * The global data structure for cj(General Linear Algebra Computing Environment).
+ *  CJ.h
+ *  Chenhan D. Yu
+ *  Created: Mar 30, 2014
+ *
+ *  The global data structure for cj(General Linear Algebra Computing Environment).
+ *
  */
+
 #include <stdarg.h>
 #include <pthread.h>
 
@@ -20,39 +25,61 @@
 #define GPU_NUM 3
 
 typedef enum {CJ_RED, CJ_GREEN, CJ_BLUE, CJ_YELLOW, CJ_PURPLE, CJ_ORANGE, CJ_BLACK} cj_Color;
+
 typedef enum {CJ_EVENT, CJ_DISTRIBUTION, CJ_DQUEUE, CJ_TASK, CJ_VERTEX, CJ_EDGE, CJ_MATRIX, CJ_CSC, CJ_SPARSE, CJ_CONSTANT} cj_objType;
+
 typedef enum {CJ_DOUBLE, CJ_SINGLE, CJ_COMPLEX, CJ_DCOMPLEX, CJ_INT32, CJ_INT64} cj_eleType;
+
 typedef enum {CJ_W, CJ_R, CJ_RW} cj_rwType;
+
 typedef enum {CJ_TOP, CJ_BOTTOM, CJ_LEFT, CJ_RIGHT} cj_Side;
+
 typedef enum {CJ_TL, CJ_TR, CJ_BL, CJ_BR} cj_Quadrant;
+
 typedef enum {ALLOCATED_ONLY, NOTREADY, QUEUED, RUNNING, DONE, CANCELLED} cj_taskStatus;
+
 typedef enum {PRI_HIGH, PRI_LOW} cj_taskPriority;
+
 typedef enum {TRUE, FALSE} cj_Bool;
+
 typedef enum {WORKER_SLEEPING, WORKER_RUNNING} cj_workerStatus;
+
 //do we need to add CJ_TASK_SYRK?
 typedef enum {CJ_TASK_GEMM, CJ_TASK_TRSM, CJ_TASK_SYRK, CJ_TASK_POTRF} cj_taskType;
+
 typedef enum {CJ_DEV_CPU, CJ_DEV_CUDA, CJ_DEV_MIC} cj_devType;
+
 //run_begin, run_end, fetch_begin, fetch_end, prefetch, wait_prefetch, init, terminate
 typedef enum {CJ_EVENT_TASK_RUN_BEG, CJ_EVENT_TASK_RUN_END, CJ_EVENT_FETCH_BEG, CJ_EVENT_FETCH_END, 
   CJ_EVENT_PREFETCH, CJ_EVENT_WAIT_PREFETCH, CJ_EVENT_INIT, CJ_EVENT_TERM} cj_eveType;
+
 typedef enum {CJ_CACHE_CLEAN, CJ_CACHE_DIRTY} cj_cacheStatus; 
+
+/**
+ *  Thread mutex
+ */ 
 struct lock_s {
   pthread_mutex_t lock;
 };
 
+/**
+ *  Distribution is used to descripe the locality of an object in the 
+ *  distributed memory environment.
+ */
 struct distribution_s {
-  /* available device and CPU*/
-  cj_Bool avail[MAX_DEV + 1];
-  struct device_s *device[MAX_DEV + 1];
-  /* pipeline position */
-  int line[MAX_DEV + 1];
-  struct lock_s lock;
+  cj_Bool avail[MAX_DEV + 1];            /// available device and CPU
+  struct device_s *device[MAX_DEV + 1];  /// device pointers array
+  int line[MAX_DEV + 1];                 /// cache line id array
+  struct lock_s lock;                    /// mutex for modifying the distribution
 };
 
+/**
+ *  Constant is a an object type.   
+ */
 struct constant_s {
-  cj_eleType eletype;
-  double dconstant;
-  float  sconstnat;
+  cj_eleType eletype;                    /// constant type (double, float)
+  double dconstant;                      /// double constant value
+  float  sconstnat;                      /// float constant value
   /* TODO : decide what other type of constant should look like. */
 };
 

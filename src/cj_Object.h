@@ -6,6 +6,7 @@
  * cj_Matrix: CJ inner matrix data structure.
  * cj_Object: Object type (such as tasks, matrix, etc).
  */
+
 /* cj_Object function prototypes */
 cj_Object *cj_Object_new (cj_objType);
 cj_Object *cj_Object_append (cj_objType, void*);

@@ -1,14 +1,10 @@
 /*
- * cj.c
- * Global method for cj(GLACE: Global Linear Algebra Computing Environment).
- * cj_error: Error Information Output.
- * cj_Lock: Multithread lock for race.
- * cj_Distribution: Data distribution in which device.
- * cj_Task: Fine grained task, each task is corresponding to a linear algebra operation on a block.
- * cj_Worker: Each worker is corresponding to a thread.
- * cj_Queue: Ready Queue for the dynamic scheduling.
- * cj_Schedule: ready_queue, remaining time(Priority Scheduling), lock management for all the workers.
- */
+ *  cj.h
+ *  Chenhan D. Yu
+ *  Created: Mar 30, 2014
+ *
+ * */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -29,10 +25,12 @@ static cj_t cj;
 static int taskid = 0;
 static cj_Bool cj_queue_enable = FALSE;
 
-/* ---------------------------------------------------------------------
- * cj_error
- * ---------------------------------------------------------------------
- *  */
+/**
+ *  @brief cj_error
+ *
+ *  @param *func_name function name pointer
+ *  @param *msg_text error message pointer
+ */
 
 void cj_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_ERROR: %s(): %s\n", func_name, msg_text);
@@ -40,39 +38,62 @@ void cj_error (const char *func_name, char* msg_text) {
   exit(0);
 }
 
+
 /* ---------------------------------------------------------------------
  * cj_Lock
  * ---------------------------------------------------------------------
- *  */
+ * */
 
+/**
+ * @brief  Create a pthread mutex.
+ * @param  *lock lock pointer 
+ */
 void cj_Lock_new (cj_Lock *lock) {
   int ret = pthread_mutex_init(&(lock->lock), NULL);
   if (ret) cj_error("Lock_new", "Could not initial locks properly.");
 }
 
+/**
+ * @brief  Delete a pthread mutex.
+ * @param  *lock lock pointer 
+ */
 void cj_Lock_delete (cj_Lock *lock) {
   int ret = pthread_mutex_destroy(&(lock->lock));
   if (ret) cj_error("Lock_delete", "Could not destroy locks properly.");
 }
 
+/**
+ * @brief  This function will try to acquire the mutex. It will block until has 
+ *         been acquired.
+ * @param  *lock lock pointer 
+ */
 void cj_Lock_acquire (cj_Lock *lock) {
   int ret = pthread_mutex_lock(&(lock->lock));
   if (ret) cj_error("Lock_acquire", "Could not acquire locks properly.");
 }
 
+/**
+ * @brief  This function will release the mutex.
+ * @param  *lock lock pointer 
+ */
 void cj_Lock_release (cj_Lock *lock) {
   int ret = pthread_mutex_unlock(&(lock->lock));
   if (ret) cj_error("Lock_release", "Could not release locks properly.");
 }
 
+
 /* ---------------------------------------------------------------------
  * cj_Distribution
  * ---------------------------------------------------------------------
- *  */
+ * */
 
+/**
+ * @brief  Create a new distribution.
+ * @return an uninitialized distribution 
+ */
 cj_Distribution *cj_Distribution_new () {
   cj_Distribution *dist = (cj_Distribution *) malloc(sizeof(cj_Distribution));
-  if (!dist) cj_Object_error("Distribution_new", "memory allocation failed.");
+  if (!dist) cj_error("Distribution_new", "memory allocation failed.");
 
   int i;
   for (i = 0; i < MAX_DEV + 1; i++) {
@@ -88,11 +109,16 @@ cj_Distribution *cj_Distribution_new () {
   return dist;
 }
 
+
 /* ---------------------------------------------------------------------
  * cj_Task
  * ---------------------------------------------------------------------
- *  */
+ * */
 
+/**
+ * @brief  Create a new task.
+ * @return an uninitialized task 
+ */
 cj_Task *cj_Task_new () {
   cj_Task *task = (cj_Task *) malloc(sizeof(cj_Task));
   if (!task) cj_error("Task_new", "memory allocation failed.");
@@ -117,11 +143,22 @@ cj_Task *cj_Task_new () {
   return task;
 }
 
+/**
+ * @brief  Set the type and function type for a task.
+ * @param  *task :target task pointer
+ * @param  tasktype :can be gemm, syrk, trsm ... etc
+ * @param  function :function pointer 
+ */
 void cj_Task_set (cj_Task *task, cj_taskType tasktype, void (*function)(void*)) {
   task->tasktype = tasktype;
   task->function = function;
 }
 
+/**
+ * @brief  Analysis dependencies and update the dependency graph according to
+ *         the task's inputs, outputs and read/write features.
+ * @param  *task target task pointer
+ */
 void cj_Task_dependency_analysis (cj_Object *task) {
   if (task->objtype != CJ_TASK) {
     cj_error("Task_dependency_analysis", "The object is not a task.");
@@ -183,6 +220,11 @@ void cj_Task_dependency_analysis (cj_Object *task) {
   }
 }
 
+/**
+ * @brief  Describes a dependency between two tasks.
+ * @param  *out target task pointer depends on in
+ * @param  *in 
+ */
 void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
   if (out->objtype != CJ_TASK || in->objtype != CJ_TASK) {
     cj_error("Task_dependency_add", "The object is not a task.");
@@ -206,6 +248,10 @@ void cj_Task_dependency_add (cj_Object *out, cj_Object *in) {
   cj_Lock_release(&task_in->tsk_lock);
 }
 
+/**
+ * @brief  Enqueue a task satisfying all dependencies to the ready queue.
+ * @param  *target the task waiting for enqueuing
+ */
 void cj_Task_enqueue(cj_Object *target) {
   if (target->objtype != CJ_TASK) {
     cj_error("Task_enqueue", "The object is not a task.");
@@ -237,6 +283,10 @@ void cj_Task_enqueue(cj_Object *target) {
   cj_Lock_release(&schedule->ready_queue_lock[dest]);
 }
 
+/**
+ * @brief  Update dependencies relating the target task.
+ * @param  *target the target task
+ */
 void cj_Task_dependencies_update (cj_Object *target) {
   if (target->objtype != CJ_TASK) cj_error("Task_dependencies_update", "The object is not a task.");
   cj_Task *task = target->task;
@@ -267,9 +317,15 @@ void cj_Task_dependencies_update (cj_Object *target) {
 /* ---------------------------------------------------------------------
  * cj_Worker
  * ---------------------------------------------------------------------
- *  */
+ * */
 
 
+/**
+ * @brief  Fetch a task from the ready queue.
+ * @param  *worker the target worker
+ * @retval task 
+ * @retval null if the queue is empty
+ */
 cj_Object *cj_Worker_wait_dqueue (cj_Worker *worker) {
   cj_Schedule *schedule = &cj.schedule;
   cj_Object *task = cj_Dqueue_pop_head(schedule->ready_queue[worker->id]);
@@ -415,7 +471,7 @@ void cj_Worker_wait_prefetch (cj_Worker *worker, int h2d, int d2h) {
       cj_Lock_release(&dist->lock);
 
       if (cache->status[dist->line[dest]] == CJ_CACHE_DIRTY) {
-        cache->status[dist->line[dest]] == CJ_CACHE_CLEAN;
+        cache->status[dist->line[dest]] = CJ_CACHE_CLEAN;
       }
     }
   }
@@ -630,7 +686,7 @@ void *cj_Worker_entry_point (void *arg) {
 /* ---------------------------------------------------------------------
  * cj_Queue
  * ---------------------------------------------------------------------
- *  */
+ * */
 
 void cj_Queue_begin() {
   cj_queue_enable = TRUE;

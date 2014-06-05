@@ -986,6 +986,7 @@ cj_Object *cj_Object_new (cj_objType type) {
   return object;
 }
 
+/*
 void cj_Sqrt(cj_Object *A) {
   if (A->objtype != CJ_MATRIX) {
     cj_Object_error("Sqrt", "This is not a matrix.");
@@ -1012,4 +1013,4 @@ void cj_Sqrt(cj_Object *A) {
       *a_buff = ( double ) sqrt ( *a_buff );
   }
 }
-
+*/

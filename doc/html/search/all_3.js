@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['da',['dA',['../cj___lapack_8c.html#aba5be2636dc2c5f1c17ea77d54ae67f9',1,'cj_Lapack.c']]],
+  ['dary_5fgray',['DARY_GRAY',['../cj___macro_8h.html#a1eadb18d86b05b83549cfeae2d0e1e50',1,'cj_Macro.h']]],
+  ['dconstant',['dconstant',['../structconstant__s.html#a213f98e6c6eb5c94212a884f35bd6e8e',1,'constant_s']]],
+  ['dev_5fptr',['dev_ptr',['../structcache__s.html#ae9d2a4e5df100b8c787d5c7c352532ab',1,'cache_s']]],
+  ['device',['device',['../structdistribution__s.html#a95ff3d7aeb2524968c4c31b37c3d3808',1,'distribution_s::device()'],['../structcj__s.html#ad52d4654b53546623a4eed04a84ad858',1,'cj_s::device()']]],
+  ['device_5fid',['device_id',['../structworker__s.html#a1b740831f8bb166627becf07dc0ff5df',1,'worker_s']]],
+  ['device_5fs',['device_s',['../structdevice__s.html',1,'']]],
+  ['devtype',['devtype',['../structworker__s.html#a6c9cac59d0a2c705eabd2ebfa6dbf0ae',1,'worker_s::devtype()'],['../structdevice__s.html#a65a6b37ff9c41b4aee71e6370b0e9918',1,'device_s::devtype()']]],
+  ['dgemm_5f',['dgemm_',['../cj___blas_8h.html#ab18ad24f28bdd72f61e6a5331e97638a',1,'cj_Blas.h']]],
+  ['dist',['dist',['../structmatrix__s.html#a20e37f4bd6ccc8d692ca8619acc38a52',1,'matrix_s']]],
+  ['distribution',['distribution',['../structobject__s.html#a4d574285fe36997fa1eb71c469f67649',1,'object_s']]],
+  ['distribution_5fs',['distribution_s',['../structdistribution__s.html',1,'']]],
+  ['done',['DONE',['../include_2_c_j_8h.html#acaf78f44c5f1217954239a50a470e4c3a9c954bcf443428c80b0f107b3bc48749',1,'CJ.h']]],
+  ['dpotrf_5f',['dpotrf_',['../cj___lapack_8h.html#a7c1f6ae01b5b5558748da342cd7d8709',1,'cj_Lapack.h']]],
+  ['dqueue',['dqueue',['../structobject__s.html#ab6d7947ce2a74484e2e163ff88e77ba5',1,'object_s']]],
+  ['dqueue_5fs',['dqueue_s',['../structdqueue__s.html',1,'']]]
+];

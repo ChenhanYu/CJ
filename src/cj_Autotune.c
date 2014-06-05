@@ -1,9 +1,14 @@
 /*
  * cj_Autotune.c
+ * Chenhan D. Yu
+ * Created: Mar 30, 1024
+ *
  * Create the auto-tune information (the GEMM calculation time for a block) for the CPU and GPU
  * If auto-tuner is run first time, the CPU and GPU information will be stored as cj_autotune.bin under the ../test folder;
  * Otherwise, the CPU and GPU information will be directly read from the "../test/cj_autotune.bin", which will save some time.
+ *
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -20,12 +25,22 @@
 
 static cj_Autotune *autotune;
 
+/**
+ *  @brief Report error messages. 
+ *  @param *func_name function name pointer
+ *  @param *msg_text error message pointer
+ */
 void cj_Autotune_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_AUTOTUNE_ERROR: %s(): %s\n", func_name, msg_text);
   abort();
   exit(0);
 }
 
+/**
+ *  @brief Automatically run a tuning script to generate the performance model 
+ *         for CUBLAS library. This function will be executed only if the system
+ *         supports NVIDIA CUDA.
+ */
 #ifdef CJ_HAVE_CUDA
 void cj_Autotune_cublas () {
   int i, nb, ld;
@@ -128,6 +143,10 @@ void cj_Autotune_cublas () {
 }
 #endif
 
+/**
+ *  @brief Automatically run a tuning script to generate the performance model 
+ *         for MKL BLAS library.
+ */
 void cj_Autotune_mkl () {
   int i, nb, ld, info;
   float time_ms = 0.0;
@@ -196,6 +215,11 @@ void cj_Autotune_mkl () {
   free(dA); free(dB); free(dC);
 }
 
+/**
+ *  @brief Automatically run a tuning script to test the bandwidth of PCI-E bus.
+ *         This function will only be executed if the system supports 
+ *         NVIDIA CUDA.
+ */
 #ifdef CJ_HAVE_CUDA
 void cj_Autotune_pci () {
   //float *dev_A, *hos_A;
@@ -225,6 +249,9 @@ void cj_Autotune_pci () {
 }
 #endif
 
+/**
+ *  @brief  Initial the whole autotuning scripts.
+ */
 void cj_Autotune_init () {
   FILE *pFile;
   autotune = (cj_Autotune*) malloc(sizeof(cj_Autotune));
@@ -248,6 +275,10 @@ void cj_Autotune_init () {
   }
 }
 
+/**
+ *  @brief  Get the autotune structure pointer.
+ *  @return structure pointer
+ */
 cj_Autotune *cj_Autotune_get_ptr () {
   return autotune;
 }

@@ -9,7 +9,7 @@ D_CC_SRC = cj.c \
 		   cj_Sparse.c \
 		   cj_Device.c \
 		   cj_Autotune.c \
-			 cj_Profile.c
+           cj_Profile.c
 
 D_CC_OBJ = $(D_CC_SRC:.c=.o)
 
