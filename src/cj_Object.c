@@ -10,15 +10,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <CJ.h>
-#include "cj_Macro.h"
-#include "cj.h"
-#include "cj_Graph.h"
-#include "cj_Device.h"
-#include "cj_Sparse.h"
-#include "cj_Profile.h"
-
-#include "cj_Object.h"
+#include <cj.h>
 
 /* error information for debugging */
 void cj_Object_error (const char *func_name, char* msg_text) {

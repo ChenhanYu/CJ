@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
-#include <CJ.h>
-#include "cj_Object.h"
+
+#include <cj.h>
 
 static cj_Profile profile;
 

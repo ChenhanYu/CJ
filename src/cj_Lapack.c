@@ -11,13 +11,7 @@
 #include <cublas_v2.h>
 #endif
 
-#include "cj_Macro.h"
-#include <CJ.h>
-#include "cj.h"
-#include "cj_Blas.h"
-#include "cj_Lapack.h"
-#include "cj_Graph.h"
-#include "cj_Object.h"
+#include <cj.h>
 
 #define dA(i,j)  (dA + (j)*ldda + (i))
 
@@ -182,62 +176,62 @@ void cj_Chol_l_task(cj_Object *A) {
   cj_Task_dependency_analysis(task);
 }
 
-void cj_Chol_l_unb_var3(cj_Object *A) {
-  cj_Object *ATL,   *ATR,      *A00,  *a01,     *A02,
-            *ABL,   *ABR,      *a10t, *alpha11, *a12t,
-                               *A20,  *a21,     *A22;
-
-  fprintf(stderr, "Chol_l_unb_var3 (A(%d, %d)): \n", 
-	  A->matrix->m, A->matrix->n);
-  fprintf(stderr, "{\n");
-
-  ATL = cj_Object_new(CJ_MATRIX); ATR = cj_Object_new(CJ_MATRIX); 
-  A00 = cj_Object_new(CJ_MATRIX); a01 = cj_Object_new(CJ_MATRIX); A02 = cj_Object_new(CJ_MATRIX);
-
-  ABL = cj_Object_new(CJ_MATRIX); ABR = cj_Object_new(CJ_MATRIX);
-  a10t = cj_Object_new(CJ_MATRIX); alpha11 = cj_Object_new(CJ_MATRIX); a12t = cj_Object_new(CJ_MATRIX);
-  A20 = cj_Object_new(CJ_MATRIX); a21 = cj_Object_new(CJ_MATRIX); A22 = cj_Object_new(CJ_MATRIX);
-
-
-  cj_Matrix_part_2x2( A,    ATL, ATR,
-                      ABL,  ABR,     0, 0, CJ_TL );
-
-  while ( ATL->matrix->m  < A->matrix->m ){
-
-    cj_Matrix_repart_2x2_to_3x3( ATL, /**/ ATR,       A00,  /**/ a01,     A02,
-                        /* ************* */   /* ************************** */
-                                                     a10t, /**/ alpha11, a12t,
-                                 ABL, /**/ ABR,       A20,  /**/ a21,     A22,
-                                 1, 1, CJ_BR );
-
-    /*------------------------------------------------------------*/
-
-    // alpha11 = sqrt( alpha11 )
-    cj_Sqrt( alpha11 );
-
-    //if ( r_val != FLA_SUCCESS )
-    //  return ( FLA_Obj_length( A00 ) );
-
-    // a21 = a21 / alpha11
-    //FLA_Inv_scal_external( alpha11, a21 );
-	//cj_Inv_Scal( alpha11, a21);
-    cj_Trsm_rlt(alpha11, a21);
-
-    // A22 = A22 - a21 * a21'
-    //FLA_Her_external( FLA_LOWER_TRIANGULAR, FLA_MINUS_ONE, a21, A22 );
-	cj_Syrk_ln(a21, A22);
-
-    /*------------------------------------------------------------*/
-
-    cj_Matrix_cont_with_3x3_to_2x2( ATL, /**/ ATR,       A00,  a01,     /**/ A02,
-                                                  a10t, alpha11, /**/ a12t,
-                            /* ************** */  /* ************************ */
-                              ABL, /**/ ABR,       A20,  a21,     /**/ A22,
-                              CJ_TL );
-  }
-
-
-}
+//void cj_Chol_l_unb_var3(cj_Object *A) {
+//  cj_Object *ATL,   *ATR,      *A00,  *a01,     *A02,
+//            *ABL,   *ABR,      *a10t, *alpha11, *a12t,
+//                               *A20,  *a21,     *A22;
+//
+//  fprintf(stderr, "Chol_l_unb_var3 (A(%d, %d)): \n", 
+//	  A->matrix->m, A->matrix->n);
+//  fprintf(stderr, "{\n");
+//
+//  ATL = cj_Object_new(CJ_MATRIX); ATR = cj_Object_new(CJ_MATRIX); 
+//  A00 = cj_Object_new(CJ_MATRIX); a01 = cj_Object_new(CJ_MATRIX); A02 = cj_Object_new(CJ_MATRIX);
+//
+//  ABL = cj_Object_new(CJ_MATRIX); ABR = cj_Object_new(CJ_MATRIX);
+//  a10t = cj_Object_new(CJ_MATRIX); alpha11 = cj_Object_new(CJ_MATRIX); a12t = cj_Object_new(CJ_MATRIX);
+//  A20 = cj_Object_new(CJ_MATRIX); a21 = cj_Object_new(CJ_MATRIX); A22 = cj_Object_new(CJ_MATRIX);
+//
+//
+//  cj_Matrix_part_2x2( A,    ATL, ATR,
+//                      ABL,  ABR,     0, 0, CJ_TL );
+//
+//  while ( ATL->matrix->m  < A->matrix->m ){
+//
+//    cj_Matrix_repart_2x2_to_3x3( ATL, /**/ ATR,       A00,  /**/ a01,     A02,
+//                        /* ************* */   /* ************************** */
+//                                                     a10t, /**/ alpha11, a12t,
+//                                 ABL, /**/ ABR,       A20,  /**/ a21,     A22,
+//                                 1, 1, CJ_BR );
+//
+//    /*------------------------------------------------------------*/
+//
+//    // alpha11 = sqrt( alpha11 )
+//    cj_Sqrt( alpha11 );
+//
+//    //if ( r_val != FLA_SUCCESS )
+//    //  return ( FLA_Obj_length( A00 ) );
+//
+//    // a21 = a21 / alpha11
+//    //FLA_Inv_scal_external( alpha11, a21 );
+//	//cj_Inv_Scal( alpha11, a21);
+//    cj_Trsm_rlt(alpha11, a21);
+//
+//    // A22 = A22 - a21 * a21'
+//    //FLA_Her_external( FLA_LOWER_TRIANGULAR, FLA_MINUS_ONE, a21, A22 );
+//	cj_Syrk_ln(a21, A22);
+//
+//    /*------------------------------------------------------------*/
+//
+//    cj_Matrix_cont_with_3x3_to_2x2( ATL, /**/ ATR,       A00,  a01,     /**/ A02,
+//                                                  a10t, alpha11, /**/ a12t,
+//                            /* ************** */  /* ************************ */
+//                              ABL, /**/ ABR,       A20,  a21,     /**/ A22,
+//                              CJ_TL );
+//  }
+//
+//
+//}
 
 
 void cj_Chol_l_blk_var3(cj_Object *A )

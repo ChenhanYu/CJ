@@ -6,16 +6,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "cj_Macro.h"
-#include <CJ.h>
-#include "cj.h"
-#include "cj_Blas.h"
-#include "cj_Graph.h"
-#include "cj_Object.h"
-
 #ifdef CJ_HAVE_CUDA
 #include <cublas_v2.h>
 #endif
+
+#include <cj.h>
 
 void cj_Blas_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_BLAS_ERROR: %s(): %s\n", func_name, msg_text);

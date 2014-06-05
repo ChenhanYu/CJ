@@ -6,10 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <CJ.h>
-#include "../src/cj_Object.h"
-#include "../src/cj_Blas.h"
-#include "../src/cj.h"
+#include <cj.h>
 
 int main () {
   cj_Object *A, *B, *C, *D;

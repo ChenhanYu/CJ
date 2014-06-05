@@ -6,8 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <CJ.h>
-#include "cj_Object.h"
+#include <cj.h>
 
 static cj_Graph *graph;
 

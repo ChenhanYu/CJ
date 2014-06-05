@@ -5,9 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <CJ.h>
-#include "cj_Object.h"
-#include "cj_Sparse.h"
+
+#include <cj.h>
 
 void cj_Sparse_error (const char *func_name, char* msg_text) {
   fprintf(stderr, "CJ_SPARSE_ERROR: %s(): %s\n", func_name, msg_text);

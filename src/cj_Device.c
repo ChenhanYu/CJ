@@ -11,12 +11,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <CJ.h>
-#include "cj_Device.h"
-
 #ifdef CJ_HAVE_CUDA
 #include <cuda_runtime_api.h>
 #endif
+
+#include <cj.h>
 
 static int gpu_counter = 0;
 static int mic_counter = 0;

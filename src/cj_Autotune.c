@@ -19,9 +19,12 @@
 #include <cublas_v2.h>
 #endif
 
-#include <CJ.h>
+#include <cj.h>
+
+/*
 #include "cj_Blas.h"
 #include "cj_Lapack.h"
+*/
 
 static cj_Autotune *autotune;
 

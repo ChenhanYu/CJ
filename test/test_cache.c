@@ -7,11 +7,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <CJ.h>
-#include "../src/cj_Object.h"
-#include "../src/cj_Blas.h"
-#include "../src/cj.h"
-#include "../src/cj_Profile.h"
+#include <cj.h>
 
 int main () {
   cj_Object *A, *B, *C, *D;

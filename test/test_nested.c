@@ -6,11 +6,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include <CJ.h>
-#include "../src/cj_Object.h"
-#include "../src/cj_Blas.h"
-#include "../src/cj_Lapack.h"
-#include "../src/cj.h"
+#include <cj.h>
 
 int main (int argc, char* argv[]) {
   cj_Object *A11, *B11, *B21, *B22, *C11, *C21, *C22;

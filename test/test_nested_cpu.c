@@ -9,6 +9,8 @@
 #include <cuda_runtime_api.h>
 #endif
 
+#include <cj.h>
+
 int main (int argc, char* argv[]) {
   double *A11, *B11, *B21, *C11, *C21;
   double fone = 1.0, fmone = -1.0;
